@@ -1,26 +1,11 @@
 <html>
   <head>
-    <title>{{ .Title }}</title>
+    <title>Media</title>
     <link
       rel="stylesheet"
       href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css"
       integrity="sha384-rwoIResjU2yc3z8GV/NPeZWAv56rSmLldC3R/AZzGRnGxQQKnKkoFVhFQhNUwEyJ" crossorigin="anonymous">
     <link rel="stylesheet" href="https://openlayers.org/en/v3.20.1/css/ol.css" type="text/css">
-    <style>
-      .map:-moz-full-screen {
-        height: 100%;
-      }
-      .map:-webkit-full-screen {
-        height: 100%;
-      }
-      .map:fullscreen {
-        height: 100%;
-      }
-      /* position the rotate control lower than usual */
-      .ol-rotate {
-        top: 3em ;
-      }
-    </style>
     <script src="https://cdn.polyfill.io/v2/polyfill.min.js?features=requestAnimationFrame,Element.prototype.classList,URL"></script>
     <script
       src="http://code.jquery.com/jquery-2.2.4.min.js"
@@ -33,40 +18,7 @@
     <script src="https://openlayers.org/en/v3.20.1/build/ol.js"></script>
     <script>
       $(function(){
-        //var extent = [0, 0, 1024, 968];
-        var extent = [0, 0, {{.Width}}, {{.Height}}]
-        var projection = new ol.proj.Projection({
-          code: 'xkcd-image',
-          units: 'pixels',
-          extent: extent
-        });
 
-        var map = new ol.Map({
-          controls: ol.control.defaults().extend([
-            new ol.control.FullScreen()
-          ]),
-          /*interactions: ol.interaction.defaults().extend([
-            new ol.interaction.DragRotateAndZoom()
-          ]),*/
-          layers: [
-            new ol.layer.Image({
-              source: new ol.source.ImageStatic({
-                attributions: '© <a href="http://xkcd.com/license.html">xkcd</a>',
-                url: {{.Image}},
-                projection: projection,
-                imageExtent: [0, 0, {{.Width}}, {{.Height}}]
-              })
-            })
-          ],
-          target: 'map',
-          view: new ol.View({
-            projection: projection,
-            center: ol.extent.getCenter(extent),
-            zoom: 1,
-            maxZoom: 8,
-            rotation: ({{.Rotation}} * Math.PI / 180)
-          })
-        });
       });
     </script>
   </head>
@@ -84,7 +36,34 @@
       </div>
     </nav>
     <div class="container-fluid">
-      <div id="map" class="map"></div>
+      <div class="card-deck">
+        {{ range $key, $value := .Media }}
+        <div class="card" style="display: inline-block; width: 200px; max-height: 400px;">
+          <a
+            target="_blank"
+            href="/media/view/{{$key}}"
+            style="display: block; overflow: hidden; text-align:center; height: 200px; background:rgb(200,200,200);">
+            <img
+              class="card-img-top"
+              src="/api/media/download/{{$key}}"
+              alt="Card image cap"
+              style="max-width:100%; height: auto; transform: rotate({{ $value.Rotation }}deg);">
+          </a>
+          <div class="card-block" style="text-align:center;">
+            <h6 class="card-title">{{$key}}</h6>
+            <p class="card-text" style=""><small class="text-muted">{{ $value.Date }}</small></p>
+            <a
+              target="_blank"
+              href="/media/view/{{$key}}"
+              class="btn btn-primary">View</a>
+            <a
+              target="_blank"
+              href="/api/media/download/{{$key}}"
+              class="btn btn-primary">Download</a>
+          </div>
+        </div>
+        {{ end }}
+      </div>
     </div>
   </body>
 </html>
