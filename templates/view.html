@@ -30,7 +30,9 @@
       src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/js/bootstrap.min.js"
       integrity="sha384-vBWWzlZJ8ea9aCX4pEW3rVHjgjt7zpkNpZk+02D9phzyeVkE+jo0ieGizqPLForn"
       crossorigin="anonymous"></script>
+    <script src="https://use.fontawesome.com/e18802c081.js"></script>
     <script src="https://openlayers.org/en/v3.20.1/build/ol.js"></script>
+    {{ if .IsImage }}
     <script>
       $(function(){
         //var extent = [0, 0, 1024, 968];
@@ -52,7 +54,7 @@
             new ol.layer.Image({
               source: new ol.source.ImageStatic({
                 attributions: '© <a href="http://xkcd.com/license.html">xkcd</a>',
-                url: {{.Image}},
+                url: {{.URI}},
                 projection: projection,
                 imageExtent: [0, 0, {{.Width}}, {{.Height}}]
               })
@@ -69,6 +71,16 @@
         });
       });
     </script>
+    {{ else if .IsVideo }}
+    <script>
+      $(function(){
+        var video = document.getElementById("video");
+        restartVideo = function(){ video.pause(); video.currentTime = 0; video.play(); };
+        playVideo = function(){ video.play(); };
+        pauseVideo = function(){ video.pause(); };
+      });
+    </script>
+    {{ end }}
   </head>
   <body>
     <nav class="navbar navbar-toggleable-md navbar-inverse bg-inverse">
@@ -81,10 +93,41 @@
           <li class="nav-item active"><a class="nav-link" href="/media">Media <span class="sr-only">(current)</span></a></li>
           <li class="nav-item"><a class="nav-link" href="/about">About</a></li>
         </ul>
+        <form class="form-inline my-2 my-lg-0">
+          <input class="form-control mr-sm-2" type="text" placeholder="Search">
+          <button class="btn btn-outline-primary my-2 my-sm-0" type="submit">Search</button>
+        </form>
       </div>
     </nav>
     <div class="container-fluid">
+      {{ if .IsImage }}
       <div id="map" class="map"></div>
+      {{ else if .IsVideo}}
+      <div class="row">
+        <div class="col-md-2"></div>
+        <div class="col-md-8" style="text-align:center;">
+          <video id="video" width="800" height="500" controls>
+            <source src="{{.URI}}" type="video/mp4">
+          </video>
+        </div>
+        <div class="col-md-2"></div>
+      </div>
+      <div class="row">
+        <div class="col-md-2"></div>
+        <div class="col-md-8" style="text-align:center;">
+          <button class="btn btn-default btn-lg" type="button" onclick="restartVideo()">
+            <i class="fa fa-step-backward" aria-hidden="true"></i>
+          </button>
+          <button class="btn btn-primary btn-lg" type="button" onclick="playVideo()">
+            <i class="fa fa-play" aria-hidden="true"></i>
+          </button>
+          <button class="btn btn-default btn-lg" type="button" onclick="pauseVideo()">
+            <i class="fa fa-pause" aria-hidden="true"></i>
+          </button>
+        </div>
+        <div class="col-md-2"></div>
+      </div>
+      {{ end }}
     </div>
   </body>
 </html>

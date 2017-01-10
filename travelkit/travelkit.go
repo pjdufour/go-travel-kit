@@ -2,15 +2,18 @@ package main
 
 import (
 	"archive/zip"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
+	"os/user"
 	"path"
 	"io"
 	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
+	"math"
 	"html/template"
 	"strings"
 	"time"
@@ -43,12 +46,74 @@ import (
 //    t.Execute(w, p)
 //}
 
+
 type MediaAttributes struct{
+	Id string
 	Path string
+	TypeOfMedia string
+	IsImage bool
+	IsVideo bool
 	Rotation int
 	Date time.Time
 	Width int
 	Height int
+}
+
+func FilterMedia(media_in []MediaAttributes, typeOfMedia string, days int, pageSize int, pageNumber int) []MediaAttributes {
+	media_out := make([]MediaAttributes, 0)
+
+  n := time.Now()
+	today := time.Date(
+		n.Year(),
+		n.Month(),
+		n.Day(),
+		0,
+		0,
+		0,
+		0,
+		time.UTC)
+
+  if typeOfMedia == "all" || typeOfMedia == "" {
+		if days <= 0 {
+			media_out = media_in
+		} else {
+			for _, x := range media_in {
+				if int(today.Sub(x.Date).Hours()) <= (24.0 * days) {
+					media_out = append(media_out, x)
+				}
+			}
+		}
+	} else {
+		if days <= 0 {
+			for _, x := range media_in {
+				if x.TypeOfMedia == typeOfMedia {
+					media_out = append(media_out, x)
+				}
+			}
+		} else {
+			for _, x := range media_in {
+				if x.TypeOfMedia == typeOfMedia {
+					if int(today.Sub(x.Date).Hours()) <= (24.0 * days) {
+						media_out = append(media_out, x)
+					}
+				}
+			}
+	  }
+	}
+
+  if pageSize > 0 {
+		if pageNumber > 0 {
+			start := int(math.Min(float64(len(media_out)), float64(pageSize*pageNumber)))
+			end := int(math.Min(float64(len(media_out)), float64(pageSize*(pageNumber+1))))
+			return media_out[start:end]
+		} else {
+			start := 0
+			end := int(math.Min(float64(len(media_out)), float64(pageSize*(pageNumber+1))))
+			return media_out[start:end]
+	  }
+	}
+
+	return media_out
 }
 
 func unzip(archive, target string) error {
@@ -89,9 +154,14 @@ func unzip(archive, target string) error {
 }
 
 
-func ParseAttributes(pathtofile string) (time.Time, int, int, int) {
+func ParseAttributes(pathtofile string) (string, time.Time, int, int, int) {
 	filename := path.Base(pathtofile)
 	ext := strings.Split(filename,".")[1]
+
+	typeOfMedia := "image"
+	if ext == "mp4" {
+		typeOfMedia = "video"
+	}
 
 	year, _ := strconv.Atoi(filename[0:4])
 	month, _ := strconv.Atoi(filename[4:6])
@@ -164,11 +234,19 @@ func ParseAttributes(pathtofile string) (time.Time, int, int, int) {
 	//	return d, r, h, w
 	//}
 
-	return d, r, w, h
+	return typeOfMedia, d, r, w, h
 }
 
-func Collect(dir string) ([]string, map[string]string, error) {
-	files, err := zglob.Glob(dir)
+func normalizePath(pathtofile string) string {
+	usr, err := user.Current()
+	if err != nil {
+		log.Fatal( err )
+	}
+	return strings.Replace(pathtofile, "~", usr.HomeDir, -1)
+}
+
+func CollectFiles(dir string) ([]string, map[string]string, error) {
+	files, err := zglob.Glob(normalizePath(dir))
 
 	if err != nil {
 		return nil , nil , err
@@ -189,22 +267,35 @@ func Collect(dir string) ([]string, map[string]string, error) {
 	return files, m, err
 }
 
-func CollectImages(dir string) ([]string, map[string]MediaAttributes, error) {
-	files, err := zglob.Glob(dir)
+func CollectMedia(dir string) ([]MediaAttributes, map[string]MediaAttributes, error) {
+	media_list := make([]MediaAttributes,0)
+
+	files, err := zglob.Glob(normalizePath(dir))
 
 	if err != nil {
 		return nil , nil , err
 	}
 
-	m := make(map[string]MediaAttributes)
+	media_map := make(map[string]MediaAttributes)
 	for _ , f := range files {
 		basepath := path.Base(f)
 		//ext := strings.Split(basepath,".")[1]
 		id := basepath
-		date, r, w, h := ParseAttributes(f)
-		m[id] = MediaAttributes{f, r, date, w, h}
+		typeOfMedia, date, r, w, h := ParseAttributes(f)
+		media_map[id] = MediaAttributes{
+			id,
+			f,
+			typeOfMedia,
+			typeOfMedia == "image",
+			typeOfMedia == "video",
+			r,
+			date,
+			w,
+			h,
+		}
+		media_list = append(media_list, media_map[id])
 	}
-	return files, m, err
+	return media_list, media_map, err
 }
 
 func exists(path string) (bool, error) {
@@ -220,7 +311,7 @@ func setup(path_home string){
 		fmt.Println(chalk.Red, "Travel Kit Home does not exist.  Creating now!", chalk.Reset)
 		os.Mkdir(path_home, os.FileMode(0755))
 		os.Mkdir(path_home+"/temp", os.FileMode(0755))
-		os.Mkdir(path_home+"/repo", os.FileMode(0755))
+		os.Mkdir(path_home+"/repos", os.FileMode(0755))
 		resp, err := http.Get("https://github.com/pjdufour/go-travel-kit/archive/master.zip")
 		defer resp.Body.Close()
 		if err != nil {
@@ -229,7 +320,7 @@ func setup(path_home string){
 		out, err := os.Create(path_home+"/temp/go-travel-kit.zip")
 		defer out.Close()
 		_, _ = io.Copy(out, resp.Body)
-		unzip(path_home+"/temp/go-travel-kit.zip", path_home+"/repo")
+		unzip(path_home+"/temp/go-travel-kit.zip", path_home+"/repos")
 	}
 }
 
@@ -256,15 +347,17 @@ func main(){
 	if path_home == "" {
 		path_home = "~/.travelkit"
 	}
-	path_templates := extract.Extract("http.templates", f.Root, "").(string)
+
+	path_templates := extract.Extract("TEMPLATES", f.Root, "").(string)
 	if path_templates == "" {
 	  setup(path_home)
-		path_templates = "~/.travelkit/repo/templates/*"
+		path_templates = "~/.travelkit/repos/go-travel-kit-master/templates/*"
+		fmt.Println(chalk.Green, "path_templates set to", path_templates, chalk.Reset)
 	}
 
   path_photos := extract.Extract("photos", f.Root, "").(string)
 	siteurl := extract.Extract("http.siteurl", f.Root, "").(string)
-
+	MEDIA_PAGE_SIZE := extract.Extract("MEDIA_PAGE_SIZE", f.Root, 100).(int)
 
   fmt.Println("Photos", path_photos)
 
@@ -272,20 +365,20 @@ func main(){
 		return
 	}
 
-  photos_list, photos_map, photos_err := CollectImages(path_photos)
+  media_list, media_map, photos_err := CollectMedia(path_photos)
 	//file_photos, err = zglob.Glob(path_photos)
 	if photos_err != nil {
 		fmt.Println(photos_err)
 		return
 	}
-  fmt.Println(photos_list)
+  fmt.Println(media_list)
 
-	templates_list, _, templates_err := Collect(path_templates)
+	templates_list, _, templates_err := CollectFiles(path_templates)
 	if templates_err != nil {
 		fmt.Println(templates_err)
 		return
 	}
-	fmt.Println(templates_list)
+	//fmt.Println(templates_list)
 	//tmpl, err := template.ParseFiles(templates_list)
 	tmpl, err := template.ParseFiles(templates_list...)
 
@@ -317,15 +410,48 @@ func main(){
 	});
 
 	router.GET("/media", func(w http.ResponseWriter, r *http.Request, params map[string]string){
-		err = tmpl.ExecuteTemplate(w, "media.html", struct{Media map[string]MediaAttributes}{photos_map})
+
+		typeOfMedia := r.URL.Query().Get("type")
+		if len(typeOfMedia) == 0 {
+			typeOfMedia = "all"
+		}
+
+		ctx := struct{
+			TypeOfMedia string;
+			All bool;
+			Images bool;
+			Videos bool;
+			CountAll int;
+			CountImages int;
+			CountVideos int;
+			MediaAll []MediaAttributes;
+			Media7Days []MediaAttributes;
+			Media30Days []MediaAttributes;
+			Media90Days []MediaAttributes
+		}{
+		  typeOfMedia,
+		  typeOfMedia == "all",
+			typeOfMedia == "image",
+			typeOfMedia == "video",
+			len(FilterMedia(media_list, "all", 0, 0, 0)),
+			len(FilterMedia(media_list, "image", 0, 0, 0)),
+			len(FilterMedia(media_list, "video", 0, 0, 0)),
+      FilterMedia(media_list, typeOfMedia, 0, MEDIA_PAGE_SIZE, 0),
+			FilterMedia(media_list, typeOfMedia, 7, MEDIA_PAGE_SIZE, 0),
+			FilterMedia(media_list, typeOfMedia, 30, MEDIA_PAGE_SIZE, 0),
+			FilterMedia(media_list, typeOfMedia, 90, MEDIA_PAGE_SIZE, 0),
+    }
+		err = tmpl.ExecuteTemplate(w, "media.html", ctx)
 	});
 
 	router.GET("/media/view/:id", func(w http.ResponseWriter, r *http.Request, params map[string]string){
 			id := params["id"]
-			image := photos_map[id]
-			ctx := struct{Title string; Image string; Width int; Height int; Rotation int}{
+			image := media_map[id]
+			ctx := struct{Title string; URI string; IsImage bool; IsVideo bool; Width int; Height int; Rotation int}{
 				id,
 				siteurl+"/api/media/download/"+id,
+				image.IsImage,
+				image.IsVideo,
 				image.Width,
 				image.Height,
 				image.Rotation,
@@ -339,10 +465,46 @@ func main(){
 
   group := router.NewGroup("/api")
 
+	group.GET("/media/list/type/:type/days/:days/page/:page", func(w http.ResponseWriter, r *http.Request, params map[string]string){
+			typeOfMedia := params["type"]
+			if len(typeOfMedia) == 0 {
+				typeOfMedia = "all"
+			}
+			days := 0
+			if len(params["days"]) > 0 {
+				days, _ = strconv.Atoi(params["days"])
+			}
+
+			pageNumber := 0
+			if len(params["page"]) > 0 {
+				pageNumber, _ = strconv.Atoi(params["page"])
+			}
+
+			ext := params["ext"]
+			if ext == "" {
+				ext = "json"
+			}
+
+			fmt.Println("params", params)
+
+			data := FilterMedia(media_list, typeOfMedia, days, MEDIA_PAGE_SIZE, pageNumber)
+			//w.Header().Set("Content-Type", r.Header.Get("Content-Type"))
+			if ext == "json" {
+				w.Header().Set("Content-Type", "application/json")
+				if err := json.NewEncoder(w).Encode(data); err != nil {
+					panic(err)
+				}
+			} else if ext == "yml" {
+				w.Header().Set("Content-Type", "plain/text")
+				//yaml.
+			}
+	})
+
+
   group.GET("/media/download/:id", func(w http.ResponseWriter, r *http.Request, params map[string]string){
 	    id := params["id"]
 
-			img, err := os.Open(photos_map[id].Path)
+			img, err := os.Open(media_map[id].Path)
 			defer img.Close()
 
 			if err != nil {

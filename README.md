@@ -5,9 +5,15 @@
 ## Usage
 
 ```
-import github.com/pjdufor/go-travel-kit/travelkit
+travelkit travelkit.yml
+```
 
-travelkit conf.yml
+```
+TRAVELKIT_HOME: /home/vagrant/.travelkit
+photos: /home/vagrant/src/github.com/pjdufour/go-travel-kit/media/*
+http:
+  siteurl: http://localhost:8000
+MEDIA_PAGE_SIZE: 20
 ```
 
 ## Building
@@ -23,7 +29,7 @@ go get github.com/pjdufour/go-gypsy/yaml  # fork of github.com/kylelemons/go-gyp
 To build a package
 
 ```shell
-go build github.com/pjdufour/go-extract/extract
+go build github.com/pjdufour/go-travel-kit/travelkit
 ```
 
 

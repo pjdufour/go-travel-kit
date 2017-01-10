@@ -17,9 +17,41 @@
       crossorigin="anonymous"></script>
     <script src="https://openlayers.org/en/v3.20.1/build/ol.js"></script>
     <script>
-      $(function(){
+    $(function(){
+      showMore = function(id)
+      {
+        var pane = $("#"+id);
+        var page_max = pane.data("page-max");
 
-      });
+        var url = "/api/media/list/type/"+pane.data("media-type")+"/days/"+pane.data("media-days")+"/page/"+(page_max+1);
+
+        $.when($.ajax({dataType: "json", url: url})).done(function(response){
+          var pane = $("#"+id);
+          pane.data("page-max",pane.data("page-max") + 1);
+          console.log("load the following into the pane", response);
+
+          for(var i = 0; i < response.length; i++)
+          {
+            var x = response[i];
+            var card = '<div class="card" style="display: inline-block; width: 200px; max-height: 400px;">';
+            card += '<a target="_blank" href="/media/view/'+x.Id+'" style="display: block; overflow: hidden; text-align:center; height: 200px; background:rgb(200,200,200);">';
+            if(x.IsImage)
+            {
+              card += '<img class="card-img-top" src="/api/media/download/'+x.Id+'" alt="'+x.Id+'" style="max-width:100%; height: auto; transform: rotate('+x.Rotation+'deg);">';
+            }
+            else if(x.isVideo)
+            {
+              card += '<video id="video" width="220" height="200"><source src="/api/media/download/'+x.Id+'" type="video/mp4"></video>';
+            }
+            card += '</a>';
+            card += '<div class="card-block" style="text-align:center;"><h6 class="card-title">'+x.Id+'</h6><p class="card-text" style=""><small class="text-muted">'+x.Date+'</small></p><a target="_blank" href="/media/view/'+x.Id+'" class="btn btn-primary" style="margin-bottom:4px;">View</a><a target="_blank" href="/api/media/download/'+x.Id+'" class="btn btn-primary" style="margin-bottom:4px;">Download</a></div>';
+            card += '</div>';
+            $(".card-deck", pane).append(card);
+          }
+
+        });
+      };
+    });
     </script>
   </head>
   <body>
@@ -33,36 +65,226 @@
           <li class="nav-item active"><a class="nav-link" href="/media">Media <span class="sr-only">(current)</span></a></li>
           <li class="nav-item"><a class="nav-link" href="/about">About</a></li>
         </ul>
+        <form class="form-inline my-2 my-lg-0">
+          <input class="form-control mr-sm-2" type="text" placeholder="Search">
+          <button class="btn btn-outline-primary my-2 my-sm-0" type="submit">Search</button>
+        </form>
       </div>
     </nav>
     <div class="container-fluid">
-      <div class="card-deck">
-        {{ range $key, $value := .Media }}
-        <div class="card" style="display: inline-block; width: 200px; max-height: 400px;">
-          <a
-            target="_blank"
-            href="/media/view/{{$key}}"
-            style="display: block; overflow: hidden; text-align:center; height: 200px; background:rgb(200,200,200);">
-            <img
-              class="card-img-top"
-              src="/api/media/download/{{$key}}"
-              alt="Card image cap"
-              style="max-width:100%; height: auto; transform: rotate({{ $value.Rotation }}deg);">
-          </a>
-          <div class="card-block" style="text-align:center;">
-            <h6 class="card-title">{{$key}}</h6>
-            <p class="card-text" style=""><small class="text-muted">{{ $value.Date }}</small></p>
+      <div class="row">
+        <div class="col-md-3" style="padding:15px;">
+          <div class="page-header"><h3>Filters:</h3></div>
+          <div class="list-group">
             <a
-              target="_blank"
-              href="/media/view/{{$key}}"
-              class="btn btn-primary">View</a>
+              href="/media"
+              class="list-group-item list-group-item-action justify-content-between{{ if .All }} active {{ end }}">All<span class="badge badge-default badge-pill">{{ .CountAll }}</span></a>
             <a
-              target="_blank"
-              href="/api/media/download/{{$key}}"
-              class="btn btn-primary">Download</a>
+              href="/media?type=image"
+              class="list-group-item list-group-item-action justify-content-between{{ if .Images }} active {{ end }}">Images<span class="badge badge-default badge-pill">{{ .CountImages }}</span></a>
+            <a
+              href="/media?type=video"
+              class="list-group-item list-group-item-action justify-content-between{{ if .Videos }} active {{ end }}">Videos<span class="badge badge-default badge-pill">{{ .CountVideos }}</span></a>
           </div>
         </div>
-        {{ end }}
+        <div class="col-md-9" style="padding:15px;">
+          <ul class="nav nav-tabs" role="tablist">
+            <li class="nav-item">
+              <a class="nav-link active" data-toggle="tab" role="tab" href="#media_all">All</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" data-toggle="tab" role="tab" href="#media_7days">Last 7 Days</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" data-toggle="tab" role="tab" href="#media_30days">Last 30 Days</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" data-toggle="tab" role="tab" href="#media_90days">Last 90 Days</a>
+            </li>
+          </ul>
+          <div class="tab-content">
+            <div id="media_all" class="tab-pane fade active show" role="tabpanel" style="padding:15px;" data-media-type="{{.TypeOfMedia}}" data-media-days="0" data-page-max="0">
+              {{ if .MediaAll }}
+              <div class="card-deck">
+                {{ range $key, $value := .MediaAll }}
+                <div class="card" style="display: inline-block; width: 200px; max-height: 400px;">
+                  <a
+                    target="_blank"
+                    href="/media/view/{{ $value.Id }}"
+                    style="display: block; overflow: hidden; text-align:center; height: 200px; background:rgb(200,200,200);">
+                    {{ if $value.IsImage }}
+                    <img
+                      class="card-img-top"
+                      src="/api/media/download/{{ $value.Id }}"
+                      alt="Card image cap"
+                      style="max-width:100%; height: auto; transform: rotate({{ $value.Rotation }}deg);">
+                    {{ else if $value.IsVideo }}
+                    <video id="video" width="220" height="200">
+                      <source src="/api/media/download/{{ $value.Id }}" type="video/mp4">
+                    </video>
+                    {{ end }}
+                  </a>
+                  <div class="card-block" style="text-align:center;">
+                    <h6 class="card-title">{{ $value.Id }}</h6>
+                    <p class="card-text" style=""><small class="text-muted">{{ $value.Date }}</small></p>
+                    <a
+                      target="_blank"
+                      href="/media/view/{{ $value.Id }}"
+                      class="btn btn-primary" style="margin-bottom:4px;">View</a>
+                    <a
+                      target="_blank"
+                      href="/api/media/download/{{ $value.Id }}"
+                      class="btn btn-primary" style="margin-bottom:4px;">Download</a>
+                  </div>
+                </div>
+                {{ end }}
+              </div>
+              <button
+                class="btn btn-warning"
+                type="button"
+                style="width: 100%;margin-top: 15px;cursor: pointer;"
+                onclick="showMore('media_all')">Show More</button>
+              {{ else }}
+              <h4>No Media Present.</h4>
+              {{ end }}
+            </div>
+            <div id="media_7days" class="tab-pane fade" role="tabpanel" style="padding:15px;" data-media-type="{{.TypeOfMedia}}" data-media-days="7" data-page-max="0">
+              {{ if .Media7Days }}
+              <div class="card-deck">
+                {{ range $key, $value := .Media7Days }}
+                <div class="card" style="display: inline-block; width: 200px; max-height: 400px;">
+                  <a
+                    target="_blank"
+                    href="/media/view/{{ $value.Id }}"
+                    style="display: block; overflow: hidden; text-align:center; height: 200px; background:rgb(200,200,200);">
+                    {{ if $value.IsImage }}
+                    <img
+                      class="card-img-top"
+                      src="/api/media/download/{{ $value.Id }}"
+                      alt="Card image cap"
+                      style="max-width:100%; height: auto; transform: rotate({{ $value.Rotation }}deg);">
+                    {{ else if $value.IsVideo }}
+                    <video id="video" width="220" height="200">
+                      <source src="/api/media/download/{{ $value.Id }}" type="video/mp4">
+                    </video>
+                    {{ end }}
+                  </a>
+                  <div class="card-block" style="text-align:center;">
+                    <h6 class="card-title">{{ $value.Id }}</h6>
+                    <p class="card-text" style=""><small class="text-muted">{{ $value.Date }}</small></p>
+                    <a
+                      target="_blank"
+                      href="/media/view/{{ $value.Id }}"
+                      class="btn btn-primary" style="margin-bottom:4px;">View</a>
+                    <a
+                      target="_blank"
+                      href="/api/media/download/{{ $value.Id }}"
+                      class="btn btn-primary" style="margin-bottom:4px;">Download</a>
+                  </div>
+                </div>
+                {{ end }}
+              </div>
+              <button
+                class="btn btn-warning"
+                type="button"
+                style="width: 100%;margin-top: 15px;cursor: pointer;"
+                onclick="showMore('media_7days')">Show More</button>
+              {{ else }}
+              <h4>No Media in Last 7 Days.</h4>
+              {{ end }}
+            </div>
+            <div id="media_30days" class="tab-pane fade" role="tabpanel" style="padding:15px;" data-media-type="{{.TypeOfMedia}}" data-media-days="30" data-page-max="0">
+              {{ if .Media30Days }}
+              <div class="card-deck">
+                {{ range $key, $value := .Media30Days }}
+                <div class="card" style="display: inline-block; width: 200px; max-height: 400px;">
+                  <a
+                    target="_blank"
+                    href="/media/view/{{ $value.Id }}"
+                    style="display: block; overflow: hidden; text-align:center; height: 200px; background:rgb(200,200,200);">
+                    {{ if $value.IsImage }}
+                    <img
+                      class="card-img-top"
+                      src="/api/media/download/{{ $value.Id }}"
+                      alt="Card image cap"
+                      style="max-width:100%; height: auto; transform: rotate({{ $value.Rotation }}deg);">
+                    {{ else if $value.IsVideo }}
+                    <video id="video" width="220" height="200">
+                      <source src="/api/media/download/{{ $value.Id }}" type="video/mp4">
+                    </video>
+                    {{ end }}
+                  </a>
+                  <div class="card-block" style="text-align:center;">
+                    <h6 class="card-title">{{ $value.Id }}</h6>
+                    <p class="card-text" style=""><small class="text-muted">{{ $value.Date }}</small></p>
+                    <a
+                      target="_blank"
+                      href="/media/view/{{ $value.Id }}"
+                      class="btn btn-primary" style="margin-bottom:4px;">View</a>
+                    <a
+                      target="_blank"
+                      href="/api/media/download/{{ $value.Id }}"
+                      class="btn btn-primary" style="margin-bottom:4px;">Download</a>
+                  </div>
+                </div>
+                {{ end }}
+              </div>
+              <button
+                class="btn btn-warning"
+                type="button"
+                style="width: 100%;margin-top: 15px;cursor: pointer;"
+                onclick="showMore('media_30days')">Show More</button>
+              {{ else }}
+              <h4>No Media in Last 30 Days.</h4>
+              {{ end }}
+            </div>
+            <div id="media_90days" class="tab-pane fade" role="tabpanel" style="padding:15px;" data-media-type="{{.TypeOfMedia}}" data-media-days="90" data-page-max="0">
+              {{ if .Media90Days }}
+              <div class="card-deck">
+                {{ range $key, $value := .Media90Days }}
+                <div class="card" style="display: inline-block; width: 200px; max-height: 400px;">
+                  <a
+                    target="_blank"
+                    href="/media/view/{{ $value.Id }}"
+                    style="display: block; overflow: hidden; text-align:center; height: 200px; background:rgb(200,200,200);">
+                    {{ if $value.IsImage }}
+                    <img
+                      class="card-img-top"
+                      src="/api/media/download/{{ $value.Id }}"
+                      alt="Card image cap"
+                      style="max-width:100%; height: auto; transform: rotate({{ $value.Rotation }}deg);">
+                    {{ else if $value.IsVideo }}
+                    <video id="video" width="220" height="200">
+                      <source src="/api/media/download/{{ $value.Id }}" type="video/mp4">
+                    </video>
+                    {{ end }}
+                  </a>
+                  <div class="card-block" style="text-align:center;">
+                    <h6 class="card-title">{{ $value.Id }}</h6>
+                    <p class="card-text" style=""><small class="text-muted">{{ $value.Date }}</small></p>
+                    <a
+                      target="_blank"
+                      href="/media/view/{{ $value.Id }}"
+                      class="btn btn-primary" style="margin-bottom:4px;">View</a>
+                    <a
+                      target="_blank"
+                      href="/api/media/download/{{ $value.Id }}"
+                      class="btn btn-primary" style="margin-bottom:4px;">Download</a>
+                  </div>
+                </div>
+                {{ end }}
+              </div>
+              <button
+                class="btn btn-warning"
+                type="button"
+                style="width: 100%;margin-top: 15px;cursor: pointer;"
+                onclick="showMore('media_90days')">Show More</button>
+              {{ else }}
+              <h4>No Media in Last 90 Days.</h4>
+              {{ end }}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </body>
