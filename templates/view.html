@@ -1,37 +1,6 @@
 <html>
   <head>
-    <title>{{ .Title }}</title>
-    <link
-      rel="stylesheet"
-      href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css"
-      integrity="sha384-rwoIResjU2yc3z8GV/NPeZWAv56rSmLldC3R/AZzGRnGxQQKnKkoFVhFQhNUwEyJ" crossorigin="anonymous">
-    <link rel="stylesheet" href="https://openlayers.org/en/v3.20.1/css/ol.css" type="text/css">
-    <style>
-      .map:-moz-full-screen {
-        height: 100%;
-      }
-      .map:-webkit-full-screen {
-        height: 100%;
-      }
-      .map:fullscreen {
-        height: 100%;
-      }
-      /* position the rotate control lower than usual */
-      .ol-rotate {
-        top: 3em ;
-      }
-    </style>
-    <script src="https://cdn.polyfill.io/v2/polyfill.min.js?features=requestAnimationFrame,Element.prototype.classList,URL"></script>
-    <script
-      src="http://code.jquery.com/jquery-2.2.4.min.js"
-      integrity="sha256-BbhdlvQf/xTY9gja0Dq3HiwQF8LaCRTXxZKRutelT44="
-      crossorigin="anonymous"></script>
-    <script
-      src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/js/bootstrap.min.js"
-      integrity="sha384-vBWWzlZJ8ea9aCX4pEW3rVHjgjt7zpkNpZk+02D9phzyeVkE+jo0ieGizqPLForn"
-      crossorigin="anonymous"></script>
-    <script src="https://use.fontawesome.com/e18802c081.js"></script>
-    <script src="https://openlayers.org/en/v3.20.1/build/ol.js"></script>
+    {{ template "_include_head.tpl.html" . }}
     {{ if .IsImage }}
     <script>
       $(function(){

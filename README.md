@@ -10,10 +10,15 @@ travelkit travelkit.yml
 
 ```
 TRAVELKIT_HOME: /home/vagrant/.travelkit
-photos: /home/vagrant/src/github.com/pjdufour/go-travel-kit/media/*
-http:
-  siteurl: http://localhost:8000
-MEDIA_PAGE_SIZE: 20
+SITE:
+  NAME: "Travel Kit"
+  URL: http://localhost:8000
+TEMPLATES: /home/vagrant/src/github.com/pjdufour/go-travel-kit/templates/*
+MEDIA:
+  PAGE_SIZE: 2
+  LOCATIONS:
+    - "/home/vagrant/src/github.com/pjdufour/go-travel-kit/content/*"
+
 ```
 
 ## Building
