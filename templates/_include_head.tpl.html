@@ -26,9 +26,9 @@
 <script src="https://openlayers.org/en/v3.20.1/build/ol.js"></script>
 <script>
 $(function(){
-  $("#search_form").submit(function(e){
+  $(".search-form").submit(function(e){
       e.preventDefault();
-      window.location = "/media?text="+$("#search_input").val();
+      window.location = "/media?text="+$(".search-input", this).val();
   });
 });
 </script>

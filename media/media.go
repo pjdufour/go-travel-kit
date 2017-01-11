@@ -25,6 +25,23 @@ import (
   "github.com/pjdufour/go-travel-kit/types"
 )
 
+func Stringify(x map[string]int) (map[string]string) {
+	y := map[string]string{}
+	for i, v := range x {
+		y[i] = strconv.Itoa(v)
+	}
+	return y
+}
+
+func Trim(path string) string {
+	path = strings.Trim(path, " \t\n\r")
+	if strings.HasPrefix(path, "\"") && strings.HasSuffix(path, "\"") {
+		return path[1:len(path)-1]
+	} else {
+		return path
+	}
+}
+
 func ParseFilename(filename string) (string, string) {
 	if strings.Contains(filename, ".") {
 		s := strings.Split(filename,".")
@@ -73,7 +90,7 @@ func filterByDays(media_in []types.MediaAttributes, days int) []types.MediaAttri
 	}
 }
 func filterByText(media_in []types.MediaAttributes, text string) []types.MediaAttributes {
-	if len(strings.Trim(text, " \t\n\r")) == 0 {
+	if len(Trim(text)) == 0 {
 		return media_in
 	} else {
 		media_out := make([]types.MediaAttributes, 0)

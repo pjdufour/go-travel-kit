@@ -8,9 +8,9 @@
       <li class="nav-item active"><a class="nav-link" href="/media">Media <span class="sr-only">(current)</span></a></li>
       <li class="nav-item"><a class="nav-link" href="/about">About</a></li>
     </ul>
-    <form id="search_form" class="form-inline my-2 my-lg-0">
-      <input id="search_input" name="search_input" class="form-control mr-sm-2" type="text" placeholder="Search" value="{{ .Query.Text }}">
-      <button id="search_button" class="btn btn-outline-primary my-2 my-sm-0" type="submit">Search</button>
+    <form class="form-inline my-2 my-lg-0 search-form">
+      <input name="search_input" class="form-control mr-sm-2 search-input" type="text" placeholder="Search" value="{{ .Query.Text }}">
+      <button class="btn btn-outline-primary my-2 my-sm-0" type="submit">Search</button>
     </form>
   </div>
 </nav>

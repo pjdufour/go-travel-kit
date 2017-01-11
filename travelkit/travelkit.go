@@ -17,7 +17,7 @@ import (
 	//"math"
 	"html/template"
 	"strings"
-	//"time"
+	"time"
 	"strconv"
 	"reflect"
 	//"path/filepath"
@@ -33,13 +33,14 @@ import (
   "github.com/dimfeld/httptreemux"
 	"github.com/nfnt/resize"
 	//"github.com/rwcarlsen/goexif/exif"
-	//"github.com/patrickmn/go-cache"
+	"github.com/patrickmn/go-cache"
 )
 
 import (
 	"github.com/pjdufour/go-travel-kit/types"
 	"github.com/pjdufour/go-travel-kit/unzip"
 	"github.com/pjdufour/go-travel-kit/media"
+	"github.com/pjdufour/go-travel-kit/factory"
 )
 
 //func Index(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -56,18 +57,12 @@ import (
 //    t.Execute(w, p)
 //}
 
-func trim(path string) string {
-	path = strings.Trim(path, " \n\r")
-	if strings.HasPrefix(path, "\"") && strings.HasSuffix(path, "\"") {
-		return path[1:len(path)-1]
-	} else {
-		return path
-	}
-}
+
+
 func ExtractInt(keyChain string, node yaml.Node, fallback int) int {
 	value := extract.Extract(keyChain, node, fallback)
 	if reflect.TypeOf(value).String() == "yaml.Scalar" {
-		i, err := strconv.Atoi(trim(value.(yaml.Scalar).String()))
+		i, err := strconv.Atoi(media.Trim(value.(yaml.Scalar).String()))
 		if err != nil {
 			return fallback
 		} else {
@@ -82,10 +77,11 @@ func ExtractInt(keyChain string, node yaml.Node, fallback int) int {
 
 func ExtractString(keyChain string, node yaml.Node, fallback string) string {
 	value := extract.Extract(keyChain, node, fallback)
+	fmt.Println("Value", value)
 	if reflect.TypeOf(value).String() == "yaml.Scalar" {
-		return trim(value.(yaml.Scalar).String())
+		return media.Trim(value.(yaml.Scalar).String())
 	} else if reflect.TypeOf(value).String() == "string" {
-		return trim(value.(string))
+		return media.Trim(value.(string))
 	} else {
 		return fallback
 	}
@@ -99,12 +95,12 @@ func ExtractStringList(keyChain string, node yaml.Node, fallback []string) []str
 		for index, _ := range list {
 			y := list.Item(index)
 			if reflect.TypeOf(y).String() == "yaml.Scalar" {
-				out[index] = trim(y.(yaml.Scalar).String())
+				out[index] = media.Trim(y.(yaml.Scalar).String())
 			}
 		}
 		return out
 	} else if reflect.TypeOf(value).String() == "yaml.Scalar" {
-		out := trim(value.(yaml.Scalar).String())
+		out := media.Trim(value.(yaml.Scalar).String())
 		return []string{out}
 	} else if reflect.TypeOf(value).String() == "[]string" {
 		return value.([]string)
@@ -147,35 +143,40 @@ func CollectMedia(directories []string) ([]types.MediaAttributes, map[string]typ
 	media_list := make([]types.MediaAttributes,0)
 	media_map := make(map[string]types.MediaAttributes)
 
-  for _, dir := range directories {
-		fmt.Println(chalk.Cyan, "Collecting media at location", dir, chalk.Reset)
-		files, err := zglob.Glob(normalizePath(dir))
+  for _, x := range directories {
+		dir := media.Trim(x)
+		if len(dir) == 0 {
+			fmt.Println(chalk.Cyan, "Skipping blank media location", dir, chalk.Reset)
+		} else {
+			fmt.Println(chalk.Cyan, "Collecting media at location", dir, chalk.Reset)
+			files, err := zglob.Glob(normalizePath(dir))
 
-		if err != nil {
-			return nil , nil , err
-		}
-
-		for _ , f := range files {
-			stats, err := os.Stat(f)
 			if err != nil {
-				fmt.Println(chalk.Red, "Could not stat path", "--", f, chalk.Reset)
-			} else {
-				if stats.Mode().IsRegular() {
-					//fmt.Println(chalk.Cyan, "Parsing Attributes for ", f, chalk.Reset)
-					basepath := path.Base(f)
-					id := basepath
-					attrs, err := media.ParseAttributes(f)
-					if err != nil {
-						fmt.Println(chalk.Red, err, "--", f, chalk.Reset)
-					} else {
-						mergo.Merge(&attrs, types.MediaAttributes{
-							Id: id,
-							Path: f,
-							IsImage: attrs.TypeOfMedia == "image",
-							IsVideo: attrs.TypeOfMedia == "video",
-						})
-						media_map[id] = attrs
-						media_list = append(media_list, media_map[id])
+				return nil , nil , err
+			}
+
+			for _ , f := range files {
+				stats, err := os.Stat(f)
+				if err != nil {
+					fmt.Println(chalk.Red, "Could not stat path", "--", f, chalk.Reset)
+				} else {
+					if stats.Mode().IsRegular() {
+						//fmt.Println(chalk.Cyan, "Parsing Attributes for ", f, chalk.Reset)
+						basepath := path.Base(f)
+						id := basepath
+						attrs, err := media.ParseAttributes(f)
+						if err != nil {
+							fmt.Println(chalk.Red, err, "--", f, chalk.Reset)
+						} else {
+							mergo.Merge(&attrs, types.MediaAttributes{
+								Id: id,
+								Path: f,
+								IsImage: attrs.TypeOfMedia == "image",
+								IsVideo: attrs.TypeOfMedia == "video",
+							})
+							media_map[id] = attrs
+							media_list = append(media_list, media_map[id])
+						}
 					}
 				}
 			}
@@ -204,8 +205,8 @@ func LoadSettings(filename string) (types.Settings, error) {
   settings := types.Settings{
 		Home: ExtractString("TRAVELKIT_HOME", f.Root, ""),
 		Site: types.Site{
-			Name: ExtractString("HTTP.SITE_NAME", f.Root, "Travel Kit"),
-			Url: ExtractString("HTTP.SITE_URL", f.Root, "http://localhost:8000"),
+			Name: ExtractString("SITE.NAME", f.Root, "Travel Kit"),
+			Url: ExtractString("SITE.URL", f.Root, "http://localhost:8000"),
 		},
 		Media: types.Media{
 			Page_Size: ExtractInt("MEDIA_PAGE_SIZE", f.Root, 100),
@@ -248,15 +249,30 @@ func setup(path_home string){
 	}
 }
 
-func param(r *http.Request, name string, fallback string) string {
+func param(r *http.Request, params map[string]string, name string, fallback string) string {
 	value := r.URL.Query().Get(name)
 	if len(value) == 0 {
-		value = fallback
+		value, ok := params[name]
+		if ! ok {
+			return fallback
+		} else {
+			return value
+		}
+	} else {
+		return value
 	}
-	return value
+}
+
+func formatAsInteger(x int) (string, error) {
+	return strconv.FormatInt(int64(x), 10), nil
 }
 
 func main(){
+
+	fmap := template.FuncMap{
+			"int": formatAsInteger,
+	}
+
 	fmt.Println(chalk.Cyan, "Booting Travel Kit!", chalk.Reset)
 	args := os.Args
 
@@ -301,6 +317,7 @@ func main(){
 	}
   //fmt.Println(media_list)
 
+	thumbnails := cache.New(5*time.Minute, 30*time.Second)
 
   // Load Templates //
 	templates_list, _, err := CollectFiles(settings.Templates)
@@ -308,7 +325,7 @@ func main(){
 		fmt.Println(chalk.Red, err, chalk.Reset)
 		return
 	}
-	tmpl, err := template.ParseFiles(templates_list...)
+	tmpl, err := template.New("blank.tpl.html").Funcs(fmap).ParseFiles(templates_list...)
 
   router := httptreemux.New()
 
@@ -318,9 +335,9 @@ func main(){
 
 	router.GET("/media", func(w http.ResponseWriter, r *http.Request, params map[string]string){
 
-    typeOfMedia := param(r, "type", "all")
-		order := param(r, "order", "most_recent")
-		text := param(r, "text", "")
+    typeOfMedia := param(r, params, "type", "all")
+		order := param(r, params, "order", "most_recent")
+		text := param(r, params, "text", "")
 
     CountYears := map[int]int{}
 		for _, x := range media.FilterMedia(media_list, "all", 0, "", 0, 0, "most_recent") {
@@ -336,43 +353,11 @@ func main(){
 			})
 		}
 
-		orders := []map[string]string{}
+		countsByType := map[string]int{}
+		countsByType["all"] = len(media.FilterMedia(media_list, "all", 0, "", 0, 0, order))
+		countsByType["image"] = len(media.FilterMedia(media_list, "image", 0, "", 0, 0, order))
+		countsByType["video"] = len(media.FilterMedia(media_list, "video", 0, "", 0, 0, order))
 
-		x := map[string]string{
-			"id": "most_recent",
-			"title": "Most Recent",
-			"url": "/media?type="+typeOfMedia+"&order=most_recent&text="+text,
-			"class": "dropdown-item",
-		}
-		if x["id"] == order { x["class"] = x["class"] + " disabled"; x["url"] = "#";}
-		orders = append(orders, x)
-		//
-		x = map[string]string{
-			"id": "least_recent",
-			"title": "Least Recent",
-			"url": "/media?type="+typeOfMedia+"&order=least_recent&text="+text,
-			"class": "dropdown-item",
-		}
-		if x["id"] == order { x["class"] = x["class"] + " disabled"; x["url"] = "#";}
-		orders = append(orders, x)
-		//
-		x = map[string]string{
-			"id": "a_z",
-			"title": "A - Z",
-			"url": "/media?type="+typeOfMedia+"&order=a_z&text="+text,
-			"class": "dropdown-item",
-		}
-		if x["id"] == order { x["class"] = x["class"] + " disabled"; x["url"] = "#";}
-		orders = append(orders, x)
-		//
-		x = map[string]string{
-			"id": "z_a",
-			"title": "Z - A",
-			"url": "/media?type="+typeOfMedia+"&order=z_a&text="+text,
-			"class": "dropdown-item",
-		}
-		if x["id"] == order { x["class"] = x["class"] + " disabled"; x["url"] = "#";}
-		orders = append(orders, x)
 		//
 		ctx := struct{
 			Site types.Site;
@@ -381,15 +366,15 @@ func main(){
 			Images bool;
 			Videos bool;
 			Years []map[string]string;
-			CountAll int;
-			CountImages int;
-			CountVideos int;
 			MediaAll []types.MediaAttributes;
 			Media7Days []types.MediaAttributes;
 			Media30Days []types.MediaAttributes;
 			Media90Days []types.MediaAttributes;
+			Media180Days []types.MediaAttributes;
+			Types []map[string]string;
 			Orders []map[string]string;
 			Query map[string]string;
+			CountsByType map[string]string;
 		}{
 		  settings.Site,
 		  typeOfMedia,
@@ -397,32 +382,32 @@ func main(){
 			typeOfMedia == "image",
 			typeOfMedia == "video",
 			years,
-			len(media.FilterMedia(media_list, "all", 0, "", 0, 0, order)),
-			len(media.FilterMedia(media_list, "image", 0, "", 0, 0, order)),
-			len(media.FilterMedia(media_list, "video", 0, "", 0, 0, order)),
       media.FilterMedia(media_list, typeOfMedia, 0, text, settings.Media.Page_Size, 0, order),
 			media.FilterMedia(media_list, typeOfMedia, 7, text, settings.Media.Page_Size, 0, order),
 			media.FilterMedia(media_list, typeOfMedia, 30, text, settings.Media.Page_Size, 0, order),
 			media.FilterMedia(media_list, typeOfMedia, 90, text, settings.Media.Page_Size, 0, order),
-			orders,
+			media.FilterMedia(media_list, typeOfMedia, 180, text, settings.Media.Page_Size, 0, order),
+			factory.Types(typeOfMedia, text, order, countsByType),
+			factory.Orders(typeOfMedia, text, order),
 			map[string]string{"Text": text},
+			media.Stringify(countsByType),
     }
 		err = tmpl.ExecuteTemplate(w, "media.html", ctx)
 	});
 
 	router.GET("/media/view/:id", func(w http.ResponseWriter, r *http.Request, params map[string]string){
-			id := params["id"]
-			image := media_map[id]
-			ctx := struct{Title string; URI string; IsImage bool; IsVideo bool; Width int; Height int; Rotation int}{
-				id,
-				settings.Site.Url+"/api/media/download/"+id,
-				image.IsImage,
-				image.IsVideo,
-				image.Width,
-				image.Height,
-				image.Rotation,
-			}
-			err = tmpl.ExecuteTemplate(w, "view.html", ctx)
+		id := param(r, params, "id", "")
+		image := media_map[id]
+		ctx := struct{Title string; URI string; IsImage bool; IsVideo bool; Width int; Height int; Rotation int}{
+			id,
+			settings.Site.Url+"/api/media/download/"+id,
+			image.IsImage,
+			image.IsVideo,
+			image.Width,
+			image.Height,
+			image.Rotation,
+		}
+		err = tmpl.ExecuteTemplate(w, "view.html", ctx)
 	})
 
 	router.GET("/about", func(w http.ResponseWriter, r *http.Request, params map[string]string){
@@ -432,67 +417,81 @@ func main(){
   group := router.NewGroup("/api")
 
 	group.GET("/media/list/type/:type/days/:days/page/:page", func(w http.ResponseWriter, r *http.Request, params map[string]string){
+		typeOfMedia := param(r, params, "type", "all")
 
-			typeOfMedia := params["type"]
-			if len(typeOfMedia) == 0 {
-				typeOfMedia = "all"
-			}
-			days := 0
-			if len(params["days"]) > 0 {
-				days, _ = strconv.Atoi(params["days"])
-			}
+		days := 0
+		if len(params["days"]) > 0 {
+			days, _ = strconv.Atoi(params["days"])
+		}
 
-			pageNumber := 0
-			if len(params["page"]) > 0 {
-				pageNumber, _ = strconv.Atoi(params["page"])
-			}
+		pageNumber := 0
+		if len(params["page"]) > 0 {
+			pageNumber, _ = strconv.Atoi(params["page"])
+		}
 
-			ext := params["ext"]
-			if ext == "" {
-				ext = "json"
-			}
+		ext := param(r, params, "ext", "json")
 
-			fmt.Println("params", params)
+		fmt.Println("params", params)
 
-			data := media.FilterMedia(media_list, typeOfMedia, days, "", settings.Media.Page_Size, pageNumber, "most_recent")
-			//w.Header().Set("Content-Type", r.Header.Get("Content-Type"))
-			if ext == "json" {
-				w.Header().Set("Content-Type", "application/json")
-				if err := json.NewEncoder(w).Encode(data); err != nil {
-					panic(err)
-				}
-			} else if ext == "yml" {
-				w.Header().Set("Content-Type", "plain/text")
-				//yaml.
+		data := media.FilterMedia(media_list, typeOfMedia, days, "", settings.Media.Page_Size, pageNumber, "most_recent")
+		//w.Header().Set("Content-Type", r.Header.Get("Content-Type"))
+		if ext == "json" {
+			w.Header().Set("Content-Type", "application/json")
+			if err := json.NewEncoder(w).Encode(data); err != nil {
+				panic(err)
 			}
+		} else if ext == "yml" {
+			w.Header().Set("Content-Type", "plain/text")
+			//yaml.
+		}
 	})
 
 	group.GET("/media/thumbnail/:id", func(w http.ResponseWriter, r *http.Request, params map[string]string){
-	    id := params["id"]
+	    id := param(r, params, "id", "")
 			_, ext := media.ParseFilename(id)
 
-			f, err := os.Open(media_map[id].Path)
-			defer f.Close()
-
-			if err != nil {
-				log.Println(err) // perhaps handle this nicer
-				fmt.Fprintf(w, "Could not open media file at id /%s", id)
-				return
-			}
-
 			if ext == "jpg" || ext == "jpeg" {
-				original, err := jpeg.Decode(f)
-		    if err != nil {
-		        log.Fatal(err)
-		    }
+        thumbnailAsBytes := make([]byte, 0)
+				thumbnailFromCache, found := thumbnails.Get(id)
+        if found {
+					//fmt.Println(chalk.Cyan, "Cache hit for thumbnail", id, chalk.Reset)
+					thumbnailAsBytes = thumbnailFromCache.([]byte)
+        } else {
+					//fmt.Println(chalk.Cyan, "Cache miss for thumbnail", id, chalk.Reset)
+					f, err := os.Open(media_map[id].Path)
+					defer f.Close()
 
-        thumbnail := resize.Resize(220, 0, original, resize.Lanczos3)
-				buf := new(bytes.Buffer)
-				err = jpeg.Encode(buf, thumbnail, nil)
+					if err != nil {
+						log.Println(err) // perhaps handle this nicer
+						fmt.Fprintf(w, "Could not open media file at id /%s", id)
+						return
+					}
+
+					original, err := jpeg.Decode(f)
+			    if err != nil {
+			        log.Fatal(err)
+			    }
+
+	        thumbnail := resize.Resize(220, 0, original, resize.Lanczos3)
+					buf := new(bytes.Buffer)
+					err = jpeg.Encode(buf, thumbnail, nil)
+					thumbnailAsBytes = buf.Bytes()
+					thumbnails.Set(id, thumbnailAsBytes, cache.DefaultExpiration)
+				}
 				w.Header().Set("Content-type", "image/jpeg")
 				//w.Header().Set("Content-Disposition", "attachment; filename="+id )
-				w.Write(buf.Bytes())
+				w.Write(thumbnailAsBytes)
+
 			} else {
+				f, err := os.Open(media_map[id].Path)
+				defer f.Close()
+
+				if err != nil {
+					log.Println(err) // perhaps handle this nicer
+					fmt.Fprintf(w, "Could not open media file at id /%s", id)
+					return
+				}
+
 				data, err := ioutil.ReadAll(f)
 				if err != nil {
 					log.Println(err) // perhaps handle this nicer
@@ -506,7 +505,7 @@ func main(){
 	})
 
   group.GET("/media/download/:id", func(w http.ResponseWriter, r *http.Request, params map[string]string){
-	    id := params["id"]
+	    id := param(r, params, "id", "")
 
 			img, err := os.Open(media_map[id].Path)
 			defer img.Close()
