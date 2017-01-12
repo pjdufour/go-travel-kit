@@ -8,8 +8,9 @@
   <div class="list-group" style="margin-bottom: 1rem;">
     {{ range $key, $value := .Types }}
     <a
-      href="{{ $value.url }}"
-      class="{{ $value.class }}">{{ $value.title }}<span class="badge badge-default badge-pill">{{ $value.count }}</span></a>
+      class="{{ $value.class }}"
+      data-toggle="tooltip" data-placement="right" title="{{ $value.tooltip }}"
+      href="{{ $value.url }}">{{ $value.title }}<span class="badge badge-default badge-pill">{{ $value.count }}</span></a>
     {{ end }}
   </div>
 </div>

@@ -31,7 +31,17 @@ go get ./...
 go get github.com/pjdufour/go-gypsy/yaml  # fork of github.com/kylelemons/go-gypsy/yaml
 ```
 
-To build a package
+**Build Static Files**
+
+To build static files, cd into the project directory (e.g., `~/src/github.com/pjdufour/go-travel-kit`) and then run:
+
+```
+rice -v embed-go --import-path=./travelkit
+```
+
+Rice requires static folders to be within the same folder
+
+To build a package, cd back into home (e.g., `cd`), and then run
 
 ```shell
 go build github.com/pjdufour/go-travel-kit/cmd/travelkit

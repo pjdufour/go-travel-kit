@@ -273,22 +273,35 @@ func TravelKit(){
 		err = tmpl.ExecuteTemplate(w, "index.html", ctx)
 	});
 
-	router.handle("GET", "/static", func(w http.ResponseWriter, r *http.Request, params map[string]string){
+	router.GET("/static", func(w http.ResponseWriter, r *http.Request, params map[string]string){
 		pathtofile := param(r, params, "id", "")
 		if len(pathtofile) == 0 {
 			fmt.Println(chalk.Cyan, "Error: Not path for static file found.", chalk.Reset)
 			return
 		}
 
-		staticBox, err = rice.FindBox("static")
+		staticBox, err := rice.FindBox("static")
 		if err != nil {
 			fmt.Println(chalk.Cyan, "Error: Could not find Rice Box static.", chalk.Reset)
 			return
 		}
 
+		fmt.Println(chalk.Cyan, "Static Box", staticBox, chalk.Reset)
+
 		content, err := staticBox.String(pathtofile)
+
+		if err != nil {
+			fmt.Println(chalk.Cyan, "Error: Could read static file at path", pathtofile, ".", chalk.Reset)
+			return
+		}
+
+    content = strings.Replace(content, "%", "%%", -1)
+
+		contentType := fileExtensionToContentType(pathtofile)
+		w.Header().Set("Content-Type", contentType)
+		
 		fmt.Fprintf(w, content)
-		w.Header().Set("Content-Type", fileExtensionToContentType(id))
+
 	});
 
 	router.GET("/about", func(w http.ResponseWriter, r *http.Request, params map[string]string){
@@ -313,7 +326,7 @@ func TravelKit(){
 		order := param(r, params, "order", "most_recent")
 		text := param(r, params, "text", "")
 
-		ctx := struct{stat
+		ctx := struct{
 			Site Site;
 			ContactsAll []Contact;
 			Orders []map[string]string;

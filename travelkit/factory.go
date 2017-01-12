@@ -2,6 +2,7 @@ package travelkit
 
 import (
 	"strconv"
+	"strings"
 )
 
 func CreateOrdersForMedia(typeOfMedia string, text string, currentOrder string) ([]map[string]string) {
@@ -55,6 +56,7 @@ func CreateTypes(settings Settings, typeOfMedia string, text string, currentOrde
 		"id": "all",
 		"title": "All",
 		"class": "list-group-item list-group-item-action justify-content-between",
+		"tooltip": "Includes all files",
 	})
 
 	for _, x := range settings.Media.Types {
@@ -62,6 +64,7 @@ func CreateTypes(settings Settings, typeOfMedia string, text string, currentOrde
 			"id": x.Id,
 			"title": x.Title,
 			"class": "list-group-item list-group-item-action justify-content-between",
+			"tooltip": "Includes the following: "+ strings.Join(x.Extensions, ", "),
 		})
 	}
 

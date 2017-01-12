@@ -80,12 +80,11 @@ func buildYears(s Settings, media_list []MediaAttributes) []map[string]string {
   return years
 }
 
-func fileExtensionToContentType(string pathToFile)
-{
-  switch basename, ext := ParseFilename(path.Base(pathToFile), true); {
+func fileExtensionToContentType(pathtofile string) string {
+  switch _, ext := ParseFilename(path.Base(pathtofile), true); ext {
     case "css": return "text/css"
     case "json" : return "application/json"
-    case "js" : return "application/javascript"
+    case "js" : return "application/javascript; charset=utf-8"
     default : return "text/plain"
   }
 }
