@@ -1,0 +1,171 @@
+<html>
+  <head>
+    {{ template "_include_head.tpl.html" . }}
+    <script>
+    $(function(){
+      $(".search-form").submit(function(e){
+          e.preventDefault();
+          window.location = "/media?text="+$(".search-input", this).val();
+      });
+    });
+    </script>
+    <script>
+    $(function(){
+      showMore = function(id)
+      {
+        var pane = $("#"+id);
+        var page_max = pane.data("page-max");
+
+        var url = "/api/media/list/type/"+pane.data("media-type")+"/days/"+pane.data("media-days")+"/page/"+(page_max+1);
+
+        var text = $(".travelkit").data("query-text");
+        if(text != undefined)
+        {
+          text = ""+text
+          if(text.length > 0)
+          {
+            url += "?text="+text
+          }
+        }
+
+        $.when($.ajax({dataType: "json", url: url})).done(function(response){
+          var pane = $("#"+id);
+          pane.data("page-max",pane.data("page-max") + 1);
+          console.log("load the following into the pane", response);
+
+          for(var i = 0; i < response.length; i++)
+          {
+            var x = response[i];
+            var d = new Date(x.date);
+            var date = MONTHS[d.getMonth()]+" "+d.getDate()+", "+d.getFullYear();
+            var time = ((d.getHours() > 12) ? (d.getHours() - 12) : d.getHours())+":"+d.getMinutes()+":"+d.getSeconds()+" "+((d.getHours() >= 12) ? "PM" : "AM");
+            var card = '<div class="card" style="display: inline-block; width: 200px;">';
+            card += '<a target="_blank" href="/media/view?id='+x.id+'" style="display: block; overflow: hidden; text-align:center; height: 200px; background:rgb(200,200,200);">';
+            if(x.IsImage)
+            {
+              card += '<img class="card-img-top" src="/api/media/thumbnail/'+x.id+'" alt="'+x.id+'" style="max-width:100%; height: auto; transform: rotate('+x.rotation+'deg);">';
+            }
+            else if(x.isVideo)
+            {
+              card += '<video id="video" width="220" height="200"><source src="/api/media/download/'+x.id+'" type="video/mp4"></video>';
+            }
+            card += '</a>';
+            card += '<div class="card-block" style="text-align:center;"><h6 class="card-title">'+x.id+'</h6><p class="card-text" style=""><small class="text-muted">'+date+'<br>'+time+'</small></p><a target="_blank" href="/media/view?id='+x.id+'" class="btn btn-primary" style="margin-bottom:4px;">View</a><a target="_blank" href="/api/media/download/'+x.id+'" class="btn btn-primary" style="margin-bottom:4px;">Download</a></div>';
+            card += '</div>';
+            $(".card-deck", pane).append(card);
+          }
+
+        });
+      };
+    });
+    </script>
+  </head>
+  <body>
+    {{ template "_include_header.tpl.html" . }}
+    <div class="container-fluid travelkit" data-query-text="{{ .Query.Text }}">
+      <div class="row">
+        <div class="col-md-3" style="padding:15px;">
+          <div class="page-header"><h3>Filters:</h3></div>
+          {{ template "_include_filter_text.tpl.html" . }}
+          {{ template "_include_filter_types.tpl.html" . }}
+          {{ template "_include_filter_years.tpl.html" . }}
+        </div>
+        <div class="col-md-9" style="padding:15px;">
+          <ul class="nav nav-tabs" role="tablist" style="position:relative;">
+            <li class="nav-item">
+              <a class="nav-link active" data-toggle="tab" role="tab" href="#media_all">All</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" data-toggle="tab" role="tab" href="#media_7days">Last 7 Days</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" data-toggle="tab" role="tab" href="#media_30days">Last 30 Days</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" data-toggle="tab" role="tab" href="#media_90days">Last 90 Days</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" data-toggle="tab" role="tab" href="#media_180days">Last 180 Days</a>
+            </li>
+            <div class="dropdown btn-group" style="position:absolute;top:0px;right:0px;">
+              <button
+                type="button"
+                class="btn btn-primary dropdown-toggle"
+                data-toggle="dropdown"
+                aria-haspopup="true"
+                aria-expanded="false">Order</button>
+              <div class="dropdown-menu" aria-labelledby="dropdownMenu2" style="left:auto;right:0px;">
+                {{ range $key, $value := .Orders }}
+                <a class="{{ $value.class }}" href="{{ $value.url }}">{{ $value.title }}</a>
+                {{ end }}
+                <div class="dropdown-divider"></div>
+              </div>
+            </div>
+          </ul>
+          <div class="tab-content">
+            <div id="media_all" class="tab-pane fade active show" role="tabpanel" style="padding:15px;" data-media-type="{{.TypeOfMedia}}" data-media-days="0" data-page-max="0">
+              {{ if .MediaAll }}
+              <div class="card-deck">
+                {{ range $key, $value := .MediaAll }}
+                {{ template "_include_card_media.tpl.html" $value }}
+                {{ end }}
+              </div>
+              {{ template "_include_show_more.tpl.html" "media_all" }}
+              {{ else }}
+              <h4>No Media Present.</h4>
+              {{ end }}
+            </div>
+            <div id="media_7days" class="tab-pane fade" role="tabpanel" style="padding:15px;" data-media-type="{{.TypeOfMedia}}" data-media-days="7" data-page-max="0">
+              {{ if .Media7Days }}
+              <div class="card-deck">
+                {{ range $key, $value := .Media7Days }}
+                {{ template "_include_card_media.tpl.html" $value }}
+                {{ end }}
+              </div>
+              {{ template "_include_show_more.tpl.html" "media_7days" }}
+              {{ else }}
+              <h4>No Media in Last 7 Days.</h4>
+              {{ end }}
+            </div>
+            <div id="media_30days" class="tab-pane fade" role="tabpanel" style="padding:15px;" data-media-type="{{.TypeOfMedia}}" data-media-days="30" data-page-max="0">
+              {{ if .Media30Days }}
+              <div class="card-deck">
+                {{ range $key, $value := .Media30Days }}
+                {{ template "_include_card_media.tpl.html" $value }}
+                {{ end }}
+              </div>
+              {{ template "_include_show_more.tpl.html" "media_30days" }}
+              {{ else }}
+              <h4>No Media in Last 30 Days.</h4>
+              {{ end }}
+            </div>
+            <div id="media_90days" class="tab-pane fade" role="tabpanel" style="padding:15px;" data-media-type="{{.TypeOfMedia}}" data-media-days="90" data-page-max="0">
+              {{ if .Media90Days }}
+              <div class="card-deck">
+                {{ range $key, $value := .Media90Days }}
+                {{ template "_include_card_media.tpl.html" $value }}
+                {{ end }}
+              </div>
+              {{ template "_include_show_more.tpl.html" "media_90days" }}
+              {{ else }}
+              <h4>No Media in Last 90 Days.</h4>
+              {{ end }}
+            </div>
+            <div id="media_180days" class="tab-pane fade" role="tabpanel" style="padding:15px;" data-media-type="{{.TypeOfMedia}}" data-media-days="180" data-page-max="0">
+              {{ if .Media180Days }}
+              <div class="card-deck">
+                {{ range $key, $value := .Media180Days }}
+                {{ template "_include_card_media.tpl.html" $value }}
+                {{ end }}
+              </div>
+              {{ template "_include_show_more.tpl.html" "media_180days" }}
+              {{ else }}
+              <h4>No Media in Last 180 Days.</h4>
+              {{ end }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

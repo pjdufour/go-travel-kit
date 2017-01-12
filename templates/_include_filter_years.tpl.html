@@ -1,0 +1,22 @@
+<a class="alert alert-info" style="display:block;cursor:pointer;user-select:none;text-decoration:none;" data-toggle="collapse" href="#filter_years" aria-expanded="false" aria-controls="filter_years">
+  <div class="row">
+    <div class="col-md-10"><strong>Years</strong></div>
+    <div class="col-md-2" style="float:right;font-size:1.4rem;"><i class="fa fa-chevron-circle-down" aria-hidden="true"></i></div>
+  </div>
+</a>
+<div id="filter_years" class="collapse">
+  <div class="list-group" style="margin-bottom: 1rem;">
+    <a
+      href="/media?type={{ .TypeOfMedia }}"
+      class="list-group-item list-group-item-action justify-content-between {{ if .All }} active {{ end }}">All<span class="badge badge-default badge-pill">{{ .CountsByType.all }}</span></a>
+    {{ if .Years }}
+    {{ range $key, $value := .Years }}
+    <a
+      href="/media?type={{ .TypeOfMedia }}&amp;year={{ $value.year }}"
+      class="list-group-item list-group-item-action justify-content-between{{ if $value.active }} active {{ end }}">{{ $value.year }}<span class="badge badge-default badge-pill">{{ $value.count }}</span></a>
+    {{ end }}
+    {{ else }}
+    <h4>No Years Provided.</h4>
+    {{ end }}
+  </div>
+</div>

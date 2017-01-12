@@ -1,0 +1,38 @@
+<html>
+  <head>
+    {{ template "_include_head.tpl.html" . }}
+    <script>
+      $(function(){
+
+      });
+    </script>
+  </head>
+  <body>
+    {{ template "_include_header.tpl.html" . }}
+    <div class="container-fluid travelkit">
+      <div class="row">
+        <div class="col-md-2"></div>
+        <div class="col-md-8" style="text-align:left;background: rgb(200, 200, 200);">
+          <nav class="breadcrumb">
+            <a class="breadcrumb-item" href="/">Home</a>
+            <span class="breadcrumb-item active">About</span>
+          </nav>
+          <h2 style="text-align:center;">Settings</h2>
+          <p><b>Home = </b>{{ .Home }}</p>
+          <p><b>Templates = </b>{{ .Templates }}</p>
+          <hr>
+          <h3>Site</h3>
+          <p><b>Site Name = </b>{{ .Site.Name }}</p>
+          <p><b>Site Url = </b>{{ .Site.Url }}</p>
+          <hr>
+          <h3>Media</h3>
+          <p><b>Page Size = </b>{{ .Media.Page_Size }}</p>
+          <p><b>Types = </b>{{ .Media.Types }}</p>
+          <p><b>Locations = </b>{{ join .Media.Locations "; "  }}</p>
+          <hr>
+        </div>
+        <div class="col-md-2"></div>
+      </div>
+    </div>
+  </body>
+</html>

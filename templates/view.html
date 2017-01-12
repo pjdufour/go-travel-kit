@@ -1,0 +1,136 @@
+<html>
+  <head>
+    {{ template "_include_head.tpl.html" . }}
+    {{ if .IsImage }}
+    <script>
+      $(function(){
+        //var extent = [0, 0, 1024, 968];
+        var extent = [0, 0, {{.Width}}, {{.Height}}]
+        var projection = new ol.proj.Projection({
+          code: 'xkcd-image',
+          units: 'pixels',
+          extent: extent
+        });
+
+        var map = new ol.Map({
+          controls: ol.control.defaults().extend([
+            new ol.control.FullScreen()
+          ]),
+          /*interactions: ol.interaction.defaults().extend([
+            new ol.interaction.DragRotateAndZoom()
+          ]),*/
+          layers: [
+            new ol.layer.Image({
+              source: new ol.source.ImageStatic({
+                attributions: '© <a href="http://xkcd.com/license.html">xkcd</a>',
+                url: {{.URI}},
+                projection: projection,
+                imageExtent: [0, 0, {{.Width}}, {{.Height}}]
+              })
+            })
+          ],
+          target: 'map',
+          view: new ol.View({
+            projection: projection,
+            center: ol.extent.getCenter(extent),
+            zoom: 1,
+            maxZoom: 8,
+            rotation: ({{.Rotation}} * Math.PI / 180)
+          })
+        });
+      });
+    </script>
+    {{ else if .IsVideo }}
+    <script>
+      $(function(){
+        var video = document.getElementById("video");
+        restartVideo = function(){ video.pause(); video.currentTime = 0; video.play(); };
+        playVideo = function(){ video.play(); };
+        pauseVideo = function(){ video.pause(); };
+      });
+    </script>
+    {{ else if .IsGeoJSON }}
+    <script>
+      $(function(){
+        var fl = new ol.layer.Vector({
+          source: new ol.source.Vector({
+            url: {{ .URI }},
+            projection: "EPSG:4326",
+            format: new ol.format.GeoJSON()
+          })
+        });
+        var map = new ol.Map({
+          controls: ol.control.defaults().extend([new ol.control.FullScreen()]),
+          layers: [new ol.layer.Tile({source: new ol.source.OSM()}),fl],
+          target: 'map',
+          view: new ol.View({center: [0, 0], zoom: 1, maxZoom: 8})
+        });
+        fl.getSource().on('change', function(){
+          if (fl.getSource().getState() === 'ready'){
+            var newExtent = fl.getSource().getExtent();
+            map.getView().fit(newExtent, map.getSize());
+            /*setTimeout(function(){
+              var newExtent = ol.proj.transformExtent(
+                fl.getSource().getExtent(),
+                "EPSG:4326",
+                map.getView().getProjection()
+              );
+              var newExtent = fl.getSource().getExtent();
+              map.getView().fit(newExtent, map.getSize());
+            }, 3000);*/
+          }
+        });
+
+      });
+    </script>
+    {{ end }}
+  </head>
+  <body>
+    {{ template "_include_header.tpl.html" . }}
+    <div class="container-fluid travelkit">
+      {{ if .IsText }}
+      <div class="row">
+        <div class="col-md-2"></div>
+        <div class="col-md-8" style="text-align:left;background: rgb(200, 200, 200);">
+          <nav class="breadcrumb">
+            <a class="breadcrumb-item" href="/">Home</a>
+            <a class="breadcrumb-item" href="/media">Media</a>
+            <span class="breadcrumb-item active">{{ .Id }}</span>
+          </nav>
+          <pre class="highlight"><code>{{ .TextContent }}</code></pre>
+        </div>
+        <div class="col-md-2"></div>
+      </div>
+      {{ else if .IsImage }}
+      <div id="map" class="map"></div>
+      {{ else if .IsVideo}}
+      <div class="row">
+        <div class="col-md-2"></div>
+        <div class="col-md-8" style="text-align:center;">
+          <video id="video" width="800" height="500" controls>
+            <source src="{{ .URI }}" type="video/mp4">
+          </video>
+        </div>
+        <div class="col-md-2"></div>
+      </div>
+      <div class="row">
+        <div class="col-md-2"></div>
+        <div class="col-md-8" style="text-align:center;">
+          <button class="btn btn-default btn-lg" type="button" onclick="restartVideo()">
+            <i class="fa fa-step-backward" aria-hidden="true"></i>
+          </button>
+          <button class="btn btn-primary btn-lg" type="button" onclick="playVideo()">
+            <i class="fa fa-play" aria-hidden="true"></i>
+          </button>
+          <button class="btn btn-default btn-lg" type="button" onclick="pauseVideo()">
+            <i class="fa fa-pause" aria-hidden="true"></i>
+          </button>
+        </div>
+        <div class="col-md-2"></div>
+      </div>
+      {{ else if .IsGeoJSON }}
+      <div id="map" class="map"></div>
+      {{ end }}
+    </div>
+  </body>
+</html>

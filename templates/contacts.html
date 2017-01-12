@@ -1,0 +1,107 @@
+<html>
+  <head>
+    {{ template "_include_head.tpl.html" . }}
+    <script>
+    $(function(){
+      $(".search-form").submit(function(e){
+          e.preventDefault();
+          window.location = "/contacts?text="+$(".search-input", this).val();
+      });
+    });
+    </script>
+    <script>
+    $(function(){
+      showMore = function(id)
+      {
+        var pane = $("#"+id);
+        var page_max = pane.data("page-max");
+
+        var url = "/api/contacts/list/page/"+(page_max+1);
+
+        var text = $(".travelkit").data("query-text");
+        if(text != undefined)
+        {
+          text = ""+text
+          if(text.length > 0)
+          {
+            url += "?text="+text
+          }
+        }
+
+        $.when($.ajax({dataType: "json", url: url})).done(function(response){
+          var pane = $("#"+id);
+          pane.data("page-max",pane.data("page-max") + 1);
+          console.log("load the following into the pane", response);
+
+          for(var i = 0; i < response.length; i++)
+          {
+            var x = response[i];
+            var email = x.emails.length > 0 ? x.emails[0] : "--";
+            var card = '<div class="card" style="display: inline-block; width: 200px;">';
+            card += '<a target="_blank" href="/contacts/view?id='+x.id+'" style="display: block; overflow: hidden; text-align:center; height: 200px; background:rgb(200,200,200);">';
+            if(x.IsImage)
+            {
+              card += '<img class="card-img-top" src="/api/contacts/thumbnail/'+x.id+'" alt="'+x.id+'" style="max-width:100%; height: auto; transform: rotate('+x.rotation+'deg);">';
+            }
+            else if(x.isVideo)
+            {
+              card += '<video id="video" width="220" height="200"><source src="/api/contacts/download/'+x.id+'" type="video/mp4"></video>';
+            }
+            card += '</a>';
+            card += '<div class="card-block" style="text-align:center;"><h6 class="card-title">'+x.id+'</h6><p class="card-text" style=""><small class="text-muted">'+email+'</small></p><a target="_blank" href="/contacts/view?id='+x.id+'" class="btn btn-primary" style="margin-bottom:4px;">View</a><a target="_blank" href="/api/contacts/download/'+x.id+'" class="btn btn-primary" style="margin-bottom:4px;">Download</a></div>';
+            card += '</div>';
+            $(".card-deck", pane).append(card);
+          }
+
+        });
+      };
+    });
+    </script>
+  </head>
+  <body>
+    {{ template "_include_header.tpl.html" . }}
+    <div class="container-fluid travelkit" data-query-text="{{ .Query.Text }}">
+      <div class="row">
+        <div class="col-md-3" style="padding:15px;">
+          <div class="page-header"><h3>Filters:</h3></div>
+          {{ template "_include_filter_text.tpl.html" . }}
+        </div>
+        <div class="col-md-9" style="padding:15px;">
+          <ul class="nav nav-tabs" role="tablist" style="position:relative;">
+            <li class="nav-item">
+              <a class="nav-link active" data-toggle="tab" role="tab" href="#contacts_all">All</a>
+            </li>
+            <div class="dropdown btn-group" style="position:absolute;top:0px;right:0px;">
+              <button
+                type="button"
+                class="btn btn-primary dropdown-toggle"
+                data-toggle="dropdown"
+                aria-haspopup="true"
+                aria-expanded="false">Order</button>
+              <div class="dropdown-menu" aria-labelledby="dropdownMenu2" style="left:auto;right:0px;">
+                {{ range $key, $value := .Orders }}
+                <a class="{{ $value.class }}" href="{{ $value.url }}">{{ $value.title }}</a>
+                {{ end }}
+                <div class="dropdown-divider"></div>
+              </div>
+            </div>
+          </ul>
+          <div class="tab-content">
+            <div id="contacts_all" class="tab-pane fade active show" role="tabpanel" style="padding:15px;" data-page-max="0">
+              {{ if .ContactsAll }}
+              <div class="card-deck">
+                {{ range $key, $value := .ContactsAll }}
+                {{ template "_include_card_contact.tpl.html" $value }}
+                {{ end }}
+              </div>
+              {{ template "_include_show_more.tpl.html" "contacts_all" }}
+              {{ else }}
+              <h4>No Contacts Present.</h4>
+              {{ end }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

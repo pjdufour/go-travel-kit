@@ -1,0 +1,30 @@
+<div class="card" style="display: inline-block; width: 200px;">
+  <a
+    target="_blank"
+    href="/media/view?id={{ .Id }}"
+    style="display: block; overflow: hidden; text-align:center; height: 200px; background:rgb(200,200,200);">
+    {{ if .IsImage }}
+    <img
+      class="card-img-top"
+      src="/api/media/thumbnail/{{ .Id }}"
+      alt="Card image cap"
+      style="max-width:100%; height: auto; transform: rotate({{ .Rotation }}deg);">
+    {{ else if .IsVideo }}
+    <video id="video" width="220" height="200">
+      <source src="/api/media/download/{{ .Id }}" type="video/mp4">
+    </video>
+    {{ end }}
+  </a>
+  <div class="card-block" style="text-align:center;">
+    <h6 class="card-title">{{ .Id }}</h6>
+    <p class="card-text" style=""><small class="text-muted">{{ .Date | date }}<br>{{ .Date | time }}</small></p>
+    <a
+      target="_blank"
+      href="/media/view?id={{ .Id }}"
+      class="btn btn-primary" style="margin-bottom:4px;">View</a>
+    <a
+      target="_blank"
+      href="/api/media/download/{{ .Id }}"
+      class="btn btn-primary" style="margin-bottom:4px;">Download</a>
+  </div>
+</div>
