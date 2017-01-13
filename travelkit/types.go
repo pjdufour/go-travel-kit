@@ -7,11 +7,14 @@ import (
 
 type Contact struct {
 	Id string `json:"id"`
-	GivenName string
-	FamilyName string
-	Numbers []string
-	Emails []string
-	Photo string
+	FullName string `json:"full_name"`
+	GivenName string `json:"given_name"`
+	FamilyName string `json:"family_name"`
+	Numbers []string `json:"numbers"`
+	Faxes []string `json:"faxes"`
+	Emails []string `json:"emails"`
+	Photo string `json:"-"`
+	HasPhoto bool `json:"has_photo"`
 }
 
 type MediaAttributes struct{
@@ -51,25 +54,19 @@ func (s MediaAttributesByZA) Less(i, j int) bool { return strings.Compare(s[j].I
 type ContactsByAZ []Contact
 func (s ContactsByAZ) Len() int { return len(s); }
 func (s ContactsByAZ) Swap(i, j int) { s[i], s[j] = s[j], s[i]; }
-func (s ContactsByAZ) Less(i, j int) bool { return strings.Compare(s[i].Id, s[j].Id) < 0; }
+func (s ContactsByAZ) Less(i, j int) bool { return strings.Compare(s[i].FullName, s[j].FullName) < 0; }
 
 type ContactsByZA []Contact
 func (s ContactsByZA) Len() int { return len(s); }
 func (s ContactsByZA) Swap(i, j int) { s[i], s[j] = s[j], s[i]; }
-func (s ContactsByZA) Less(i, j int) bool {
-	if k:= strings.Compare(s[j].FamilyName, s[i].FamilyName); k == 0 {
-		return strings.Compare(s[j].GivenName, s[i].GivenName) < 0;
-	} else {
-		return k < 0;
-	}
-}
+func (s ContactsByZA) Less(i, j int) bool { return strings.Compare(s[j].FullName, s[i].FullName) < 0; }
 
 
 type Settings struct {
 	Home string
 	Site Site
 	Media Media
-	Templates string
+	//Templates string  No longer necessary, using go.rice box
 }
 
 type Site struct {

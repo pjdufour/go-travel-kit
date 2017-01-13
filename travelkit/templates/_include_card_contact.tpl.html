@@ -1,4 +1,5 @@
 <div class="card" style="display: inline-block; width: 200px;">
+  {{ if .HasPhoto }}
   <a
     target="_blank"
     href="/contacts/view?id={{ .Id }}"
@@ -9,8 +10,9 @@
       alt="Card image cap"
       style="max-width:100%; height: auto;">
   </a>
+  {{ end }}
   <div class="card-block" style="text-align:center;">
-    <h6 class="card-title">{{ .GivenName }} {{ .FamilyName }}</h6>
+    <h6 class="card-title">{{ .FullName }}</h6>
     <p class="card-text" style=""><small class="text-muted">{{ first .Numbers }}<br>{{ first .Emails }}</small></p>
     <a
       target="_blank"

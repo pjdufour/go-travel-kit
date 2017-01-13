@@ -4,21 +4,32 @@
 
 ## Usage
 
+Travel Kit is released as a single binary with static resources and html templates embedded using [go.rice](https://github.com/GeertJohan/go.rice), so no other runtime dependencies are needed.  You can specify configuration settings with a local YAML file or via environmental variables.  For the YAML file, simply pass it as the first parameter.
+
 ```
-travelkit travelkit.yml
+./travelkit travelkit.yml
 ```
+
+For example, here is an example configuration file.
 
 ```
 TRAVELKIT_HOME: /home/vagrant/.travelkit
 SITE:
-  NAME: "Travel Kit"
-  URL: http://localhost:8000
-TEMPLATES: /home/vagrant/src/github.com/pjdufour/go-travel-kit/templates/*
+  NAME: "Patrick's Travel Kit"
+  URL: http://localhost:8002
 MEDIA:
-  PAGE_SIZE: 2
+  PAGE_SIZE: 100
   LOCATIONS:
-    - "/home/vagrant/src/github.com/pjdufour/go-travel-kit/content/*"
+    - "~/Desktop"
+    - "~/workspaces"
+    - "~/GIS"
 
+```
+
+You could also set some of the settings using inline enivornmental variables as below, which switches the port from the default `8000` to `8001`.
+
+```
+SITE_URL=http://localhost:8001 ./travelkit
 ```
 
 ## Building
@@ -37,6 +48,12 @@ To build static files, cd into the project directory (e.g., `~/src/github.com/pj
 
 ```
 rice -v embed-go --import-path=./travelkit
+```
+
+Or in 1 line as:
+
+```
+cd ~/src/github.com/pjdufour/go-travel-kit/; rice -v embed-go --import-path=./travelkit
 ```
 
 Rice requires static folders to be within the same folder

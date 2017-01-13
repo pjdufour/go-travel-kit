@@ -17,15 +17,29 @@
         var page_max = pane.data("page-max");
 
         var url = "/api/media/list/type/"+pane.data("media-type")+"/days/"+pane.data("media-days")+"/page/"+(page_max+1);
-
+        var params = []
         var text = $(".travelkit").data("query-text");
         if(text != undefined)
         {
           text = ""+text
           if(text.length > 0)
           {
-            url += "?text="+text
+            params.push("text="+text)
           }
+        }
+        var order = $(".travelkit").data("query-order");
+        if(order != undefined)
+        {
+          order = ""+order
+          if(order.length > 0)
+          {
+            params.push("order="+order)
+          }
+        }
+
+        if(params.length > 0)
+        {
+          url += "?"+params.join("&");
         }
 
         $.when($.ajax({dataType: "json", url: url})).done(function(response){

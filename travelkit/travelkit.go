@@ -10,13 +10,13 @@ import (
 	"os"
 	"os/user"
 	"path"
-	"io"
+	//"io"
 	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
 	//"math"
-	"html/template"
+	//"html/template"
 	"strings"
 	"time"
 	"strconv"
@@ -29,7 +29,7 @@ import (
 	"github.com/ttacon/chalk"
 	"github.com/mattn/go-zglob"
   "github.com/pjdufour/go-gypsy/yaml"
-  "github.com/pjdufour/go-extract/extract"
+  //"github.com/pjdufour/go-extract/extract"
   "github.com/dimfeld/httptreemux"
 	"github.com/nfnt/resize"
 	//"github.com/rwcarlsen/goexif/exif"
@@ -37,9 +37,9 @@ import (
 	"github.com/GeertJohan/go.rice"
 )
 
-import (
-	"github.com/pjdufour/go-travel-kit/unzip"
-)
+//import (
+//	"github.com/pjdufour/go-travel-kit/unzip"
+//)
 
 //func Index(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 //    fmt.Fprint(w, "Not protected!\n")
@@ -64,69 +64,6 @@ func ConvertYAMLListToStringList(list yaml.List) []string {
 		}
 	}
 	return out
-}
-
-func ExtractInt(keyChain string, node yaml.Node, fallback int) int {
-	value := extract.Extract(keyChain, node, fallback)
-	if reflect.TypeOf(value).String() == "yaml.Scalar" {
-		i, err := strconv.Atoi(Trim(value.(yaml.Scalar).String()))
-		if err != nil {
-			return fallback
-		} else {
-			return i
-		}
-	} else if reflect.TypeOf(value).String() == "int" {
-		return value.(int)
-	} else {
-		return fallback
-	}
-}
-
-func ExtractString(keyChain string, node yaml.Node, fallback string) string {
-	value := extract.Extract(keyChain, node, fallback)
-	//fmt.Println("Value", value)
-	if reflect.TypeOf(value).String() == "yaml.Scalar" {
-		return Trim(value.(yaml.Scalar).String())
-	} else if reflect.TypeOf(value).String() == "string" {
-		return Trim(value.(string))
-	} else {
-		return fallback
-	}
-}
-
-func ExtractStringList(keyChain string, node yaml.Node, fallback []string) []string {
-  value := extract.Extract(keyChain, node, fallback)
-	if reflect.TypeOf(value).String() == "yaml.List" {
-		return ConvertYAMLListToStringList(value.(yaml.List))
-	} else if reflect.TypeOf(value).String() == "yaml.Scalar" {
-		out := Trim(value.(yaml.Scalar).String())
-		return []string{out}
-	} else if reflect.TypeOf(value).String() == "[]string" {
-		return value.([]string)
-	} else {
-	  return fallback
-	}
-}
-
-func ExtractMediaTypes(keyChain string, node yaml.Node) []MediaType {
-	mediaTypes := make([]MediaType, 0)
-	value := extract.Extract(keyChain, node, "")
-	if reflect.TypeOf(value).String() == "yaml.List" {
-		for _, x := range value.(yaml.List) {
-			//fmt.Println("type of ", x, "is", reflect.TypeOf(x).String())
-			if reflect.TypeOf(x).String() == "yaml.Map" {
-				y := x.(yaml.Map)
-				//fmt.Println(reflect.TypeOf(y["extensions"]).String())
-				mediaTypes = append(mediaTypes, MediaType{
-					Id: Trim(y["id"].(yaml.Scalar).String()),
-					Title: Trim(y["title"].(yaml.Scalar).String()),
-					Extensions: ConvertYAMLListToStringList(y["extensions"].(yaml.List)),
-				})
-			}
-		}
-	}
-	//fmt.Println("Media Types", mediaTypes)
-	return mediaTypes
 }
 
 func normalizePath(pathtofile string) string {
@@ -166,6 +103,8 @@ func CollectFiles(dir string) ([]string, map[string]string, error) {
 	return files, m, err
 }
 
+/*
+ * No longer necessary, b/c can embed resources using go-rice https://github.com/GeertJohan/go.rice
 func setup(path_home string){
 	fmt.Println(chalk.Cyan, "Setting up Travel Kit!", chalk.Reset)
 	if home_exists, _ := exists(path_home); ! home_exists {
@@ -183,7 +122,7 @@ func setup(path_home string){
 		_, _ = io.Copy(out, resp.Body)
 		unzip.Unzip(path_home+"/temp/go-travel-kit.zip", path_home+"/repos")
 	}
-}
+}*/
 
 func TravelKit(){
 
@@ -195,25 +134,21 @@ func TravelKit(){
 	if len(args) > 1 {
 		filename = args[1]
 	} else {
-		filename = "/home/vagrant/src/github.com/pjdufour/go-travel-kit/travelkit.yml"
+		filename = "~/travelkit.yml"
 	}
 
   fmt.Println(chalk.Cyan, "Loading settings...", chalk.Reset)
-  s, err := LoadSettings(filename)
-	if err != nil {
-		fmt.Println(chalk.Red, err, chalk.Reset)
-		return
-	} else {
-		fmt.Println(chalk.Cyan, "Settings Loaded\n", s, chalk.Reset)
-	}
+  s := LoadSettings(filename)
+	fmt.Println(chalk.Cyan, "Settings Loaded\n", s, chalk.Reset)
 
+  /* No longer necessary b/c using go rice box
 	if s.Templates == "" {
 	  setup(s.Home)
 		s.Templates = "~/.travelkit/repos/go-travel-kit-master/templates/*"
 		fmt.Println(chalk.Green, "s.Templates set to", s.Templates, chalk.Reset)
-	}
+	}*/
 
-	err = check(s)
+	err := check(s)
 	if err != nil {
 		fmt.Println(chalk.Red, err, chalk.Reset)
 		return
@@ -237,26 +172,16 @@ func TravelKit(){
 		return
 	}
 
-	thumbnails := cache.New(5*time.Minute, 30*time.Second)
-
-  // Load Templates //
-	templates_list, _, err := CollectFiles(s.Templates)
+  fmt.Println(chalk.Cyan, "Loading templates", chalk.Reset)
+  tmpl, err := LoadTemplatesFromBinary(s)
 	if err != nil {
-		fmt.Println(chalk.Red, "Could Not Collect templates files from ", s.Templates, chalk.Reset)
+		fmt.Println(chalk.Red, err, chalk.Reset)
 		return
+	} else {
+		fmt.Println(chalk.Cyan, "Templates Loaded\n", tmpl, chalk.Reset)
 	}
 
-	templateFilters := template.FuncMap{
-		"first": firstItem,
-		"join": Join,
-		"date": formatDate,
-		"time": formatTime,
-	}
-	tmpl, err := template.New("blank.tpl.html").Funcs(templateFilters).ParseFiles(templates_list...)
-	//fmt.Println(chalk.Red, "Templates List:", templates_list, chalk.Reset)
-	//tmpl, err := template.ParseFiles(templates_list...)
-	//fmt.Println(chalk.Red, "Templates Compiled:", tmpl, chalk.Reset)
-	//tmpl, err := template.ParseFiles("index.html", "_include_header.tpl.html", "_include_head.tpl.html")
+	thumbnails := cache.New(5*time.Minute, 30*time.Second)
 
   router := httptreemux.New()
 
@@ -273,20 +198,20 @@ func TravelKit(){
 		err = tmpl.ExecuteTemplate(w, "index.html", ctx)
 	});
 
+
+	staticBox, err := rice.FindBox("static")
+	if err != nil {
+		fmt.Println(chalk.Cyan, "Error: Could not find Rice Box static.", chalk.Reset)
+		return
+	}
+	fmt.Println(chalk.Cyan, "Static Box", staticBox, chalk.Reset)
+
 	router.GET("/static", func(w http.ResponseWriter, r *http.Request, params map[string]string){
 		pathtofile := param(r, params, "id", "")
 		if len(pathtofile) == 0 {
 			fmt.Println(chalk.Cyan, "Error: Not path for static file found.", chalk.Reset)
 			return
 		}
-
-		staticBox, err := rice.FindBox("static")
-		if err != nil {
-			fmt.Println(chalk.Cyan, "Error: Could not find Rice Box static.", chalk.Reset)
-			return
-		}
-
-		fmt.Println(chalk.Cyan, "Static Box", staticBox, chalk.Reset)
 
 		content, err := staticBox.String(pathtofile)
 
@@ -299,7 +224,7 @@ func TravelKit(){
 
 		contentType := fileExtensionToContentType(pathtofile)
 		w.Header().Set("Content-Type", contentType)
-		
+
 		fmt.Fprintf(w, content)
 
 	});
@@ -307,13 +232,11 @@ func TravelKit(){
 	router.GET("/about", func(w http.ResponseWriter, r *http.Request, params map[string]string){
 		ctx := struct{
 			Home string;
-			Templates string;
 			Site Site;
 			Media Media;
 			Query map[string]string;
 		}{
 			s.Home,
-			s.Templates,
 			s.Site,
 			s.Media,
 			map[string]string{"Text": ""},
@@ -333,12 +256,28 @@ func TravelKit(){
 			Query map[string]string;
 		}{
 		  s.Site,
-			contacts_list,
-			CreateOrdersForConatcts(text, order),
-			map[string]string{"Text": text},
+			FilterContacts(contacts_list, text, s.Media.Page_Size, 0, order),
+			CreateOrdersForContacts(text, order),
+			map[string]string{"Text": text, "Order": order},
     }
 		err = tmpl.ExecuteTemplate(w, "contacts.html", ctx)
 	});
+
+	router.GET("/contacts/view", func(w http.ResponseWriter, r *http.Request, params map[string]string){
+		id := param(r, params, "id", "")
+		item := contacts_map[id]
+
+		ctx := struct{
+			Site Site;
+			Query map[string]string;
+			Contact Contact;
+		}{
+			s.Site,
+			map[string]string{"Text": id},
+			item,
+		}
+		err = tmpl.ExecuteTemplate(w, "contacts_view.html", ctx)
+	})
 
 	router.GET("/media", func(w http.ResponseWriter, r *http.Request, params map[string]string){
 
@@ -377,7 +316,7 @@ func TravelKit(){
 			FilterMedia(media_list, typeOfMedia, 180, text, s.Media.Page_Size, 0, order),
 			CreateTypes(s, typeOfMedia, text, order, countsByType),
 			CreateOrdersForMedia(typeOfMedia, text, order),
-			map[string]string{"Text": text},
+			map[string]string{"Text": text, "Order": order},
 			Stringify(countsByType),
     }
 		err = tmpl.ExecuteTemplate(w, "media.html", ctx)
@@ -433,13 +372,14 @@ func TravelKit(){
 			item.Rotation,
 			textContent,
 		}
-		err = tmpl.ExecuteTemplate(w, "view.html", ctx)
+		err = tmpl.ExecuteTemplate(w, "media_view.html", ctx)
 	})
 
   group := router.NewGroup("/api")
 
 	group.GET("/contacts/list/page/:page", func(w http.ResponseWriter, r *http.Request, params map[string]string){
 		text := param(r, params, "text", "")
+		order := param(r, params, "order", "most_recent")
 
 		pageNumber := 0
 		if len(params["page"]) > 0 {
@@ -450,7 +390,7 @@ func TravelKit(){
 
 		fmt.Println("params", params)
 
-		data := FilterContacts(contacts_list, text, s.Media.Page_Size, pageNumber, "most_recent")
+		data := FilterContacts(contacts_list, text, s.Media.Page_Size, pageNumber, order)
 		if ext == "json" {
 			w.Header().Set("Content-Type", "application/json")
 			if err := json.NewEncoder(w).Encode(data); err != nil {
@@ -498,6 +438,7 @@ func TravelKit(){
 	group.GET("/media/list/type/:type/days/:days/page/:page", func(w http.ResponseWriter, r *http.Request, params map[string]string){
 		typeOfMedia := param(r, params, "type", "all")
 		text := param(r, params, "text", "")
+		order := param(r, params, "order", "most_recent")
 
 		days := 0
 		if len(params["days"]) > 0 {
@@ -513,7 +454,7 @@ func TravelKit(){
 
 		fmt.Println("params", params)
 
-		data := FilterMedia(media_list, typeOfMedia, days, text, s.Media.Page_Size, pageNumber, "most_recent")
+		data := FilterMedia(media_list, typeOfMedia, days, text, s.Media.Page_Size, pageNumber, order)
 		//w.Header().Set("Content-Type", r.Header.Get("Content-Type"))
 		if ext == "json" {
 			w.Header().Set("Content-Type", "application/json")

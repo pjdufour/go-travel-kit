@@ -17,15 +17,29 @@
         var page_max = pane.data("page-max");
 
         var url = "/api/contacts/list/page/"+(page_max+1);
-
+        var params = []
         var text = $(".travelkit").data("query-text");
         if(text != undefined)
         {
           text = ""+text
           if(text.length > 0)
           {
-            url += "?text="+text
+            params.push("text="+text)
           }
+        }
+        var order = $(".travelkit").data("query-order");
+        if(order != undefined)
+        {
+          order = ""+order
+          if(order.length > 0)
+          {
+            params.push("order="+order)
+          }
+        }
+
+        if(params.length > 0)
+        {
+          url += "?"+params.join("&");
         }
 
         $.when($.ajax({dataType: "json", url: url})).done(function(response){
@@ -36,16 +50,12 @@
           for(var i = 0; i < response.length; i++)
           {
             var x = response[i];
-            var email = x.emails.length > 0 ? x.emails[0] : "--";
+            var email = (x.emails != undefined && x.emails != null &&  x.emails.length > 0) ? x.emails[0] : "--";
             var card = '<div class="card" style="display: inline-block; width: 200px;">';
-            card += '<a target="_blank" href="/contacts/view?id='+x.id+'" style="display: block; overflow: hidden; text-align:center; height: 200px; background:rgb(200,200,200);">';
-            if(x.IsImage)
+            if(card.has_photo)
             {
+              card += '<a target="_blank" href="/contacts/view?id='+x.id+'" style="display: block; overflow: hidden; text-align:center; height: 200px; background:rgb(200,200,200);">';
               card += '<img class="card-img-top" src="/api/contacts/thumbnail/'+x.id+'" alt="'+x.id+'" style="max-width:100%; height: auto; transform: rotate('+x.rotation+'deg);">';
-            }
-            else if(x.isVideo)
-            {
-              card += '<video id="video" width="220" height="200"><source src="/api/contacts/download/'+x.id+'" type="video/mp4"></video>';
             }
             card += '</a>';
             card += '<div class="card-block" style="text-align:center;"><h6 class="card-title">'+x.id+'</h6><p class="card-text" style=""><small class="text-muted">'+email+'</small></p><a target="_blank" href="/contacts/view?id='+x.id+'" class="btn btn-primary" style="margin-bottom:4px;">View</a><a target="_blank" href="/api/contacts/download/'+x.id+'" class="btn btn-primary" style="margin-bottom:4px;">Download</a></div>';
@@ -60,7 +70,7 @@
   </head>
   <body>
     {{ template "_include_header.tpl.html" . }}
-    <div class="container-fluid travelkit" data-query-text="{{ .Query.Text }}">
+    <div class="container-fluid travelkit" data-query-text="{{ .Query.Text }}" data-query-order="{{ .Query.Order }}">
       <div class="row">
         <div class="col-md-3" style="padding:15px;">
           <div class="page-header"><h3>Filters:</h3></div>

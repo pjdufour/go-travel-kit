@@ -1,0 +1,73 @@
+<html>
+  <head>
+    {{ template "_include_head.tpl.html" . }}
+  </head>
+  <body>
+    {{ template "_include_header.tpl.html" . }}
+    <div class="container-fluid travelkit">
+      <div class="row">
+        <div class="col-md-3"></div>
+        <div class="col-md-6" style="text-align:left;">
+          <nav class="breadcrumb">
+            <a class="breadcrumb-item" href="/">Home</a>
+            <a class="breadcrumb-item" href="/contacts">Contacts</a>
+            <span class="breadcrumb-item active">{{ .Contact.FullName }}</span>
+          </nav>
+          <div class="card">
+            <div class="card-block" style="text-align:center;">
+              {{ if .Contact.HasPhoto }}
+              <a target="_blank" href="/api/contacts/thumbnail?id={{ .Contact.Id }}">
+                <img
+                class="card-img-top"
+                src="/api/contacts/thumbnail?id={{ .Contact.Id }}"
+                alt="Card image cap"
+                style="wdith:125px; max-width:100%; height: auto;">
+              </a>
+              {{ end }}
+              <h4 class="card-title" style="margin-top: .75rem;">{{ .Contact.FullName }}</h4>
+              <hr>
+              <div class="row" style="text-align: left;">
+                <div class="col-md-4"><h4>Numbers</h4></div>
+                <div class="col-md-8">
+                  {{ if .Contact.Numbers }}
+                  {{ range $i, $value := .Contact.Numbers }}
+                  <a href="tel:{{ $value }}">{{ $value }}</a><br>
+                  {{ end }}
+                  {{ else }}
+                  <i class="fa fa-minimize"></i>
+                  {{ end }}
+                </div>
+              </div>
+              <div class="row" style="text-align: left;">
+                <div class="col-md-4"><h4>Emails</h4></div>
+                <div class="col-md-8">
+                {{ if .Contact.Emails }}
+                {{ range $i, $value := .Contact.Emails }}
+                <a href="mailto:{{ $value }}">{{ $value }}</a><br>
+                {{ end }}
+                {{ else }}
+                <i class="fa fa-minimize"></i>
+                {{ end }}
+                </div>
+              </div>
+              <hr>
+              <div class="row" style="text-align: left;">
+                <div class="col-md-4"><h4>Fax</h4></div>
+                <div class="col-md-8">
+                  {{ if .Contact.FAXES }}
+                  {{ range $i, $value := .Contact.faxes }}
+                  <a href="fax:{{ $value }}">{{ $value }}</a><br>
+                  {{ end }}
+                  {{ else }}
+                  <i class="fa fa-minimize"></i>
+                  {{ end }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3"></div>
+      </div>
+    </div>
+  </body>
+</html>

@@ -29,6 +29,7 @@ func CollectContacts(s Settings, media_list []MediaAttributes, media_map map[str
     lines := strings.Split(string(content), "\n")
     y := Contact{}
     numbers := make([]string, 0)
+    faxes := make([]string, 0)
     emails := make([]string, 0)
     photo := ""
     readingPhoto := false
@@ -37,6 +38,7 @@ func CollectContacts(s Settings, media_list []MediaAttributes, media_map map[str
       if line_trimmed == "BEGIN:VCARD" {
         y = Contact{}
         numbers = make([]string, 0)
+        faxes = make([]string, 0)
         emails = make([]string, 0)
         photo = ""
         readingPhoto = false
@@ -44,23 +46,32 @@ func CollectContacts(s Settings, media_list []MediaAttributes, media_map map[str
         readingPhoto = false
         mergo.Merge(&y, Contact{
           Id: strings.ToLower(y.GivenName+"-"+y.FamilyName),
-          Numbers: numbers,
-          Emails: emails,
+          FullName: Coalesce(y.FullName, y.GivenName+" "+y.FamilyName),
+          Numbers: Unique(numbers),
+          Faxes: Unique(faxes),
+          Emails: Unique(emails),
           Photo: photo,
+          HasPhoto: len(photo) > 0,
         })
         contacts_list = append(contacts_list, y)
         contacts_map[y.Id] = y
+      } else if strings.HasPrefix(line_trimmed, "FN:") {
+        readingPhoto = false
+        y.FullName = line_trimmed[3:]
       } else if strings.HasPrefix(line_trimmed, "N:") {
         readingPhoto = false
-        n := strings.Split(line[2:], ";")
+        n := strings.Split(line_trimmed[2:], ";")
         y.GivenName = n[1]
         y.FamilyName = n[0]
       } else if strings.HasPrefix(line_trimmed, "EMAIL;") {
         readingPhoto = false
-        emails = append(emails, strings.Split(line, ":")[1])
+        emails = append(emails, strings.Split(line_trimmed, ":")[1])
+      } else if strings.HasPrefix(line_trimmed, "TEL;WORK;FAX:") {
+        readingPhoto = false
+        faxes = append(faxes, strings.Split(line_trimmed, ":")[1])
       } else if strings.HasPrefix(line_trimmed, "TEL;") {
         readingPhoto = false
-        numbers = append(emails, strings.Split(line, ":")[1])
+        numbers = append(numbers, strings.Split(line_trimmed, ":")[1])
       } else if strings.HasPrefix(line_trimmed, "PHOTO;ENCODING=BASE64;JPEG:") {
         photo = strings.Split(line, ":")[1]
         readingPhoto = true
@@ -78,13 +89,15 @@ func CollectContacts(s Settings, media_list []MediaAttributes, media_map map[str
 }
 
 func filterContactsByText(contacts_in []Contact, text string) []Contact {
+  fmt.Println(chalk.Cyan, "Filtering contacts by text", text, ".", chalk.Reset)
 	if len(Trim(text)) == 0 {
 		return contacts_in
 	} else {
 		text_lc := strings.ToLower(text)
 		contacts_out := make([]Contact, 0)
 		for _, x := range contacts_in {
-			if strings.Contains(strings.ToLower(x.GivenName+" "+x.FamilyName), text_lc) {
+      y := x.FullName+" "+x.GivenName+" "+x.FamilyName
+			if strings.Contains(strings.ToLower(y), text_lc) {
 				contacts_out = append(contacts_out, x)
 			}
 		}
@@ -105,6 +118,7 @@ func FilterContacts(contacts_in []Contact, text string, pageSize int, pageNumber
     }
 	}
 
+  // Paginate
   if pageSize > 0 {
 		if pageNumber > 0 {
 			start := int(math.Min(float64(len(contacts_out)), float64(pageSize*pageNumber)))
@@ -121,14 +135,14 @@ func FilterContacts(contacts_in []Contact, text string, pageSize int, pageNumber
 }
 
 
-func CreateOrdersForConatcts(text string, currentOrder string) ([]map[string]string) {
+func CreateOrdersForContacts(text string, currentOrder string) ([]map[string]string) {
 
 	list := []map[string]string{}
 
 	x := map[string]string{
 	  "id": "a_z",
 	  "title": "A - Z",
-	  "url": "/media?order=a_z&text="+text,
+	  "url": "/contacts?order=a_z&text="+text,
 	  "class": "dropdown-item",
 	}
 	if x["id"] == currentOrder { x["class"] = x["class"] + " disabled"; x["url"] = "#";}
@@ -137,7 +151,7 @@ func CreateOrdersForConatcts(text string, currentOrder string) ([]map[string]str
 	x = map[string]string{
 	  "id": "z_a",
 	  "title": "Z - A",
-	  "url": "/media?order=z_a&text="+text,
+	  "url": "/contacts?order=z_a&text="+text,
 	  "class": "dropdown-item",
 	}
 	if x["id"] == currentOrder { x["class"] = x["class"] + " disabled"; x["url"] = "#";}

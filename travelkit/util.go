@@ -8,6 +8,25 @@ import (
   "path"
 )
 
+func Coalesce(a string, b string) string {
+  if len(a) > 0 {
+    return a
+  }
+  return b
+}
+
+func Unique(list []string) []string {
+  out := make([]string, 0)
+  set := make(map[string]int)
+  for _, x := range list {
+    set[x] = 1
+  }
+  for x, _ := range set {
+    out = append(out, x)
+  }
+  return out
+}
+
 func Join(list []string, delimiter string) string {
   return strings.Join(list, delimiter)
 }
