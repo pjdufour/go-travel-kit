@@ -8,6 +8,15 @@ import (
   "path"
 )
 
+func IndexOf(a []string, b string) int {
+  for i, x :=range a {
+    if x == b {
+      return i
+    }
+  }
+  return -1
+}
+
 func Coalesce(a string, b string) string {
   if len(a) > 0 {
     return a

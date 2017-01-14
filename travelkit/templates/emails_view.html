@@ -1,0 +1,51 @@
+<html>
+  <head>
+    {{ template "_include_head.tpl.html" . }}
+  </head>
+  <body>
+    {{ template "_include_header.tpl.html" . }}
+    <div class="container-fluid travelkit">
+      <div class="row">
+        <div class="col-md-3"></div>
+        <div class="col-md-6" style="text-align:left;">
+          <nav class="breadcrumb">
+            <a class="breadcrumb-item" href="/">Home</a>
+            <a class="breadcrumb-item" href="/emails">Emails</a>
+            <span class="breadcrumb-item active">{{ .Email.Subject }}</span>
+          </nav>
+          <div class="card">
+            <div class="card-block" style="text-align:left;">
+              <div class="row" style="text-align: left;">
+                <div class="col-md-2"><h5>Date:</h5></div>
+                <div class="col-md-10">{{ .Email.DateTime }}
+                </div>
+              </div>
+              <div class="row" style="text-align: left;">
+                <div class="col-md-2"><h5>TO:</h5></div>
+                <div class="col-md-10">{{ .Email.TO }}
+                </div>
+              </div>
+              <div class="row" style="text-align: left;">
+                <div class="col-md-2"><h5>CC:</h5></div>
+                <div class="col-md-10">{{ .Email.CC }}
+                </div>
+              </div>
+              <div class="row" style="text-align: left;">
+                <div class="col-md-2"><h5>BCC:</h5></div>
+                <div class="col-md-10">{{ .Email.BCC }}
+                </div>
+              </div>
+              <div class="row" style="text-align: left;">
+                <div class="col-md-2"><h5>Subject:</h5></div>
+                <div class="col-md-10">{{ .Email.Subject }}
+                </div>
+              </div>
+              <hr>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3"></div>
+      </div>
+    </div>
+  </body>
+</html>

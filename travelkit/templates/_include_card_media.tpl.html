@@ -1,4 +1,5 @@
 <div class="card" style="display: inline-block; width: 200px;">
+  {{ if or .IsImage .IsVideo }}
   <a
     target="_blank"
     href="/media/view?id={{ .Id }}"
@@ -15,6 +16,7 @@
     </video>
     {{ end }}
   </a>
+  {{ end }}
   <div class="card-block" style="text-align:center;">
     <h6 class="card-title">{{ .Id }}</h6>
     <p class="card-text" style=""><small class="text-muted">{{ .Date | date }}<br>{{ .Date | time }}</small></p>

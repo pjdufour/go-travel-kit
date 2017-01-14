@@ -184,6 +184,7 @@ func LoadTemplatesFromBinary(s Settings) (* template.Template, error) {
 	}
 
   templateFilters := template.FuncMap{
+    "or": or,
     "first": firstItem,
     "isLast": isLast,
     "isNotLast": isNotLast,

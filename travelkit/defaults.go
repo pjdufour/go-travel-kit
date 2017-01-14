@@ -1,6 +1,5 @@
 package travelkit
 
-
 var DEFAULT_HOME = "~/.travelkit"
 
 var DEFAULT_SITE_NAME = "Travel Kit"
@@ -9,6 +8,7 @@ var DEFAULT_SITE_URL = "http://localhost:8000"
 
 var DEFAULT_MEDIA_LOCATIONS = []string{
   "~/Desktop/*",
+  "~/gn migration/**/*",
 }
 
 var DEFAULT_PAGE_SIZE = 16
@@ -28,6 +28,11 @@ var DEFAULT_MEDIA_TYPES = []MediaType{
     Id: "vcf",
     Title: "VCF",
     Extensions: []string{"vcf", "vcf~",},
+  },
+  MediaType{
+    Id: "mbox",
+    Title: "MBOX",
+    Extensions: []string{"mbox",},
   },
   MediaType{
     Id: "text",

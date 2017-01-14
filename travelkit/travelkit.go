@@ -172,6 +172,15 @@ func TravelKit(){
 		return
 	}
 
+	// Load Contacts //
+	fmt.Println(chalk.Cyan, "Loading emails...", chalk.Reset)
+	emails_list, emails_map, err := CollectEmails(s, media_list, media_map)
+	if err != nil {
+		fmt.Println(chalk.Red, err, chalk.Reset)
+		return
+	}
+	fmt.Println(chalk.Cyan, "Emails List:", emails_list, chalk.Reset)
+
   fmt.Println(chalk.Cyan, "Loading templates", chalk.Reset)
   tmpl, err := LoadTemplatesFromBinary(s)
 	if err != nil {
@@ -277,6 +286,49 @@ func TravelKit(){
 			item,
 		}
 		err = tmpl.ExecuteTemplate(w, "contacts_view.html", ctx)
+	})
+
+	router.GET("/emails", func(w http.ResponseWriter, r *http.Request, params map[string]string){
+
+		order := param(r, params, "order", "most_recent")
+		text := param(r, params, "text", "")
+
+		ctx := struct{
+			Site Site;
+			EmailsAll []Email;
+			Emails7Days []Email;
+			Emails30Days []Email;
+			Emails90Days []Email;
+			Emails180Days []Email;
+			Orders []map[string]string;
+			Query map[string]string;
+		}{
+		  s.Site,
+			FilterEmails(emails_list, 0, text, s.Media.Page_Size, 0, order),
+			FilterEmails(emails_list, 7, text, s.Media.Page_Size, 0, order),
+			FilterEmails(emails_list, 30, text, s.Media.Page_Size, 0, order),
+			FilterEmails(emails_list, 90, text, s.Media.Page_Size, 0, order),
+			FilterEmails(emails_list, 180, text, s.Media.Page_Size, 0, order),
+			CreateOrdersForEmails(text, order),
+			map[string]string{"Text": text, "Order": order},
+    }
+		err = tmpl.ExecuteTemplate(w, "emails.html", ctx)
+	});
+
+	router.GET("/emails/view", func(w http.ResponseWriter, r *http.Request, params map[string]string){
+		id := param(r, params, "id", "")
+		item := emails_map[id]
+
+		ctx := struct{
+			Site Site;
+			Query map[string]string;
+			Email Email;
+		}{
+			s.Site,
+			map[string]string{"Text": id},
+			item,
+		}
+		err = tmpl.ExecuteTemplate(w, "emails_view.html", ctx)
 	})
 
 	router.GET("/media", func(w http.ResponseWriter, r *http.Request, params map[string]string){

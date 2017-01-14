@@ -54,16 +54,19 @@
             var date = MONTHS[d.getMonth()]+" "+d.getDate()+", "+d.getFullYear();
             var time = ((d.getHours() > 12) ? (d.getHours() - 12) : d.getHours())+":"+d.getMinutes()+":"+d.getSeconds()+" "+((d.getHours() >= 12) ? "PM" : "AM");
             var card = '<div class="card" style="display: inline-block; width: 200px;">';
-            card += '<a target="_blank" href="/media/view?id='+x.id+'" style="display: block; overflow: hidden; text-align:center; height: 200px; background:rgb(200,200,200);">';
-            if(x.IsImage)
+            if(x.IsImage || x.IsVideo)
             {
-              card += '<img class="card-img-top" src="/api/media/thumbnail/'+x.id+'" alt="'+x.id+'" style="max-width:100%; height: auto; transform: rotate('+x.rotation+'deg);">';
+              card += '<a target="_blank" href="/media/view?id='+x.id+'" style="display: block; overflow: hidden; text-align:center; height: 200px; background:rgb(200,200,200);">';
+              if(x.IsImage)
+              {
+                card += '<img class="card-img-top" src="/api/media/thumbnail/'+x.id+'" alt="'+x.id+'" style="max-width:100%; height: auto; transform: rotate('+x.rotation+'deg);">';
+              }
+              else if(x.isVideo)
+              {
+                card += '<video id="video" width="220" height="200"><source src="/api/media/download/'+x.id+'" type="video/mp4"></video>';
+              }
+              card += '</a>';
             }
-            else if(x.isVideo)
-            {
-              card += '<video id="video" width="220" height="200"><source src="/api/media/download/'+x.id+'" type="video/mp4"></video>';
-            }
-            card += '</a>';
             card += '<div class="card-block" style="text-align:center;"><h6 class="card-title">'+x.id+'</h6><p class="card-text" style=""><small class="text-muted">'+date+'<br>'+time+'</small></p><a target="_blank" href="/media/view?id='+x.id+'" class="btn btn-primary" style="margin-bottom:4px;">View</a><a target="_blank" href="/api/media/download/'+x.id+'" class="btn btn-primary" style="margin-bottom:4px;">Download</a></div>';
             card += '</div>';
             $(".card-deck", pane).append(card);

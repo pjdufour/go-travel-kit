@@ -6,6 +6,10 @@ import (
   "errors"
 )
 
+func or(a bool, b bool) bool {
+  return a || b
+}
+
 func firstItem(list []string) string {
   if len(list) > 0 {
     return list[0]

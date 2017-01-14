@@ -1,0 +1,15 @@
+<div class="card" style="display: inline-block; width: 200px;">
+  <div class="card-block" style="text-align:left;">
+    <h6 class="card-title">Subject:{{ .Subject }}</h6>
+    <p class="card-text" style=""><small class="text-muted">{{ .DateTime | date }}<br>{{ .DateTime | time }}</small></p>
+    <p class="card-text" style=""><small class="text-muted">From: {{ .From }}<br>To: {{ .TO }}</small></p>
+    <a
+      target="_blank"
+      href="/emails/view?id={{ .Id }}"
+      class="btn btn-primary" style="margin-bottom:4px;">View</a>
+    <a
+      target="_blank"
+      href="/api/emails/download/{{ .Id }}"
+      class="btn btn-primary" style="margin-bottom:4px;">Download</a>
+  </div>
+</div>
